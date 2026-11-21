@@ -1,0 +1,294 @@
+{
+  "entities": {
+    "TestDoc": {
+      "title": "TestDoc",
+      "description": "Connection test document",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "PharmacySettings": {
+      "title": "PharmacySettings",
+      "description": "Store configuration and invoice printing settings",
+      "type": "object",
+      "properties": {
+        "pharmacyName": { "type": "string", "maxLength": 200 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 100 },
+        "licenseNo": { "type": "string", "maxLength": 100 },
+        "ntn": { "type": "string", "maxLength": 100 },
+        "logoUrl": { "type": "string", "maxLength": 1024 },
+        "defaultSalesman": { "type": "string", "maxLength": 100 },
+        "preparedBy": { "type": "string", "maxLength": 100 },
+        "printedBy": { "type": "string", "maxLength": 100 },
+        "footerRemarks": { "type": "string", "maxLength": 1000 },
+        "defaultPdfTemplate": { "type": "string", "maxLength": 50 },
+        "currencySymbol": { "type": "string", "maxLength": 20 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["pharmacyName"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Master catalog medicine or healthcare product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "normalizedName": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 100 },
+        "price": { "type": "number" },
+        "productCode": { "type": "string", "maxLength": 50 },
+        "sourcePriceListVersion": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "category", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer sales order or invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 200 },
+        "orderDate": { "type": "string", "maxLength": 50 },
+        "salesman": { "type": "string", "maxLength": 100 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "advanceTax": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "paymentStatus": { "type": "string", "maxLength": 50 },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderNumber", "customerName", "grandTotal"]
+    },
+    "PurchaseOrder": {
+      "title": "PurchaseOrder",
+      "description": "Stock purchase invoice from supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "purchaseNumber": { "type": "string", "maxLength": 50 },
+        "supplierInvoiceNo": { "type": "string", "maxLength": 100 },
+        "supplierName": { "type": "string", "maxLength": 200 },
+        "purchaseDate": { "type": "string", "maxLength": 50 },
+        "grandTotal": { "type": "number" },
+        "paymentStatus": { "type": "string", "maxLength": 50 },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "purchaseNumber", "supplierName", "grandTotal"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Pharmacy customer record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "code": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 100 },
+        "openingBalance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name"]
+    },
+    "Quotation": {
+      "title": "Quotation",
+      "description": "Quotation / estimate invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "quotationNumber": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 200 },
+        "quotationDate": { "type": "string", "maxLength": 50 },
+        "grandTotal": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "quotationNumber", "customerName", "grandTotal"]
+    },
+    "ReturnRecord": {
+      "title": "ReturnRecord",
+      "description": "Sale or purchase return log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "returnNumber": { "type": "string", "maxLength": 50 },
+        "returnType": { "type": "string", "maxLength": 50 },
+        "partyName": { "type": "string", "maxLength": 200 },
+        "returnDate": { "type": "string", "maxLength": 50 },
+        "grandTotal": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "returnNumber", "returnType", "partyName", "grandTotal"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operational daily expense record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "expenseNumber": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 100 },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "expenseNumber", "title", "amount", "date"]
+    },
+    "StockAdjustment": {
+      "title": "StockAdjustment",
+      "description": "Physical stock count adjustment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "adjustmentNumber": { "type": "string", "maxLength": 50 },
+        "adjustmentType": { "type": "string", "maxLength": 50 },
+        "productName": { "type": "string", "maxLength": 200 },
+        "quantity": { "type": "number" },
+        "adjustmentDate": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "adjustmentNumber", "productName", "quantity"]
+    },
+    "Investor": {
+      "title": "Investor",
+      "description": "Pharmacy capital investor",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 100 },
+        "capitalInvested": { "type": "number" },
+        "profitSharePercentage": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "capitalInvested", "profitSharePercentage"]
+    },
+    "Distribution": {
+      "title": "Distribution",
+      "description": "Monthly profit dividend distribution",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "month": { "type": "number" },
+        "year": { "type": "number" },
+        "netProfit": { "type": "number" },
+        "distributedAmount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "month", "year", "netProfit", "distributedAmount"]
+    },
+    "RecoveryRecord": {
+      "title": "RecoveryRecord",
+      "description": "Daily customer payment recovery and receiving receipt record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "receiptNumber": { "type": "string", "maxLength": 50 },
+        "recoveryDate": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 200 },
+        "previousDue": { "type": "number" },
+        "recoveredAmount": { "type": "number" },
+        "discountOrAdjustment": { "type": "number" },
+        "remainingDue": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "collectedBy": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "receiptNumber", "recoveryDate", "customerName", "recoveredAmount"]
+    }
+  },
+  "firestore": {
+    "/test/{testId}": {
+      "schema": "TestDoc",
+      "description": "Heartbeat and connection validation document"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account profile root document"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "PharmacySettings",
+      "description": "Pharmacy store branding and printing settings"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Master pharmaceutical products catalog"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer sales orders and invoices"
+    },
+    "/users/{userId}/purchases/{purchaseId}": {
+      "schema": "PurchaseOrder",
+      "description": "Stock purchase invoices from suppliers"
+    },
+    "/users/{userId}/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer directory records"
+    },
+    "/users/{userId}/quotations/{quotationId}": {
+      "schema": "Quotation",
+      "description": "Price quotations and proforma estimates"
+    },
+    "/users/{userId}/returns/{returnId}": {
+      "schema": "ReturnRecord",
+      "description": "Customer sales and supplier purchase returns"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Daily operational expense ledger"
+    },
+    "/users/{userId}/stockAdjustments/{adjId}": {
+      "schema": "StockAdjustment",
+      "description": "Physical stock count inventory adjustments"
+    },
+    "/users/{userId}/investors/{investorId}": {
+      "schema": "Investor",
+      "description": "Investor capital and profit share records"
+    },
+    "/users/{userId}/distributions/{distId}": {
+      "schema": "Distribution",
+      "description": "Monthly profit distributions to investors"
+    },
+    "/users/{userId}/recoveries/{recoveryId}": {
+      "schema": "RecoveryRecord",
+      "description": "Daily customer payment recoveries and receiving receipts"
+    }
+  }
+}

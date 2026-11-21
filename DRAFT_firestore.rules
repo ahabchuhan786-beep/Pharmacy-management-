@@ -1,0 +1,179 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Pillar 1 Default-Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'ahabchuhan786@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Heartbeat & Connection Verification Endpoint
+    match /test/{testId} {
+      allow get: if true;
+      allow write: if false;
+    }
+
+    // Master User Partition
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId);
+      allow update: if isOwner(userId) && isValidId(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+
+      // Pharmacy Store Settings
+      match /settings/{settingId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(settingId);
+        allow update: if isOwner(userId) && isValidId(settingId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Products Catalog
+      match /products/{productId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(productId) &&
+          incoming().name is string && incoming().name.size() <= 200 &&
+          incoming().category is string && incoming().category.size() <= 100 &&
+          incoming().price is number;
+        allow update: if isOwner(userId) && isValidId(productId) &&
+          incoming().name is string && incoming().name.size() <= 200 &&
+          incoming().price is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Sales Orders / Invoices
+      match /orders/{orderId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(orderId) &&
+          incoming().orderNumber is string && incoming().orderNumber.size() <= 50 &&
+          incoming().customerName is string && incoming().customerName.size() <= 200 &&
+          incoming().grandTotal is number;
+        allow update: if isOwner(userId) && isValidId(orderId) &&
+          incoming().grandTotal is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Purchases
+      match /purchases/{purchaseId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(purchaseId) &&
+          incoming().purchaseNumber is string && incoming().purchaseNumber.size() <= 50 &&
+          incoming().supplierName is string && incoming().supplierName.size() <= 200 &&
+          incoming().grandTotal is number;
+        allow update: if isOwner(userId) && isValidId(purchaseId) &&
+          incoming().grandTotal is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Customers
+      match /customers/{customerId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(customerId) &&
+          incoming().name is string && incoming().name.size() <= 200;
+        allow update: if isOwner(userId) && isValidId(customerId) &&
+          incoming().name is string && incoming().name.size() <= 200;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Quotations
+      match /quotations/{quotationId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(quotationId) &&
+          incoming().quotationNumber is string && incoming().quotationNumber.size() <= 50 &&
+          incoming().customerName is string && incoming().customerName.size() <= 200 &&
+          incoming().grandTotal is number;
+        allow update: if isOwner(userId) && isValidId(quotationId) &&
+          incoming().grandTotal is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Stock Returns
+      match /returns/{returnId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(returnId) &&
+          incoming().returnNumber is string && incoming().returnNumber.size() <= 50 &&
+          incoming().partyName is string && incoming().partyName.size() <= 200 &&
+          incoming().grandTotal is number;
+        allow update: if isOwner(userId) && isValidId(returnId) &&
+          incoming().grandTotal is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Daily Expenses
+      match /expenses/{expenseId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(expenseId) &&
+          incoming().expenseNumber is string && incoming().expenseNumber.size() <= 50 &&
+          incoming().title is string && incoming().title.size() <= 200 &&
+          incoming().amount is number;
+        allow update: if isOwner(userId) && isValidId(expenseId) &&
+          incoming().amount is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Stock Adjustments
+      match /stockAdjustments/{adjId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(adjId) &&
+          incoming().adjustmentNumber is string && incoming().adjustmentNumber.size() <= 50 &&
+          incoming().productName is string && incoming().productName.size() <= 200 &&
+          incoming().quantity is number;
+        allow update: if isOwner(userId) && isValidId(adjId) &&
+          incoming().quantity is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Investors
+      match /investors/{investorId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(investorId) &&
+          incoming().name is string && incoming().name.size() <= 200 &&
+          incoming().capitalInvested is number;
+        allow update: if isOwner(userId) && isValidId(investorId) &&
+          incoming().capitalInvested is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Distributions
+      match /distributions/{distId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(distId) &&
+          incoming().month is number &&
+          incoming().year is number &&
+          incoming().netProfit is number;
+        allow update: if isOwner(userId) && isValidId(distId) &&
+          incoming().netProfit is number;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+  }
+}

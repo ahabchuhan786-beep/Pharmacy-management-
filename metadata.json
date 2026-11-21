@@ -1,0 +1,7 @@
+{
+  "name": "Pharmacy Order Management & Invoice Generator",
+  "description": "A complete pharmacy order management, purchases tracking, daily expenses logging, monthly profit calculation & investor dividend distribution, stock returns, and multi-tier reporting system with Nafees/AK Pharmacy styled PDF generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

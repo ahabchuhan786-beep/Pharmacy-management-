@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#f8fafc] text-slate-800 antialiased min-h-screen selection:bg-blue-500 selection:text-white font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Print Styles for A4 page format printing */
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
+@media print {
+  html, body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  header, aside, nav, #app-top-header, #desktop-sidebar, #mobile-bottom-nav, button, #sticky-mobile-order-bar {
+    display: none !important;
+  }
+
+  body:has(> #recovery-receipt-modal) > #root {
+    display: none !important;
+  }
+
+  #invoice-preview-modal,
+  #recovery-receipt-modal {
+    position: static !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  #recovery-receipt-modal .recovery-modal-dialog,
+  #recovery-receipt-modal .recovery-modal-scroll {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #printable-a4-sheet,
+  #printable-recovery-sheet:not(.compact-slip-sheet) {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #printable-recovery-sheet.compact-slip-sheet {
+    box-shadow: none !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-height: auto !important;
+    padding: 4mm !important;
+    margin: 0 auto !important;
+    border: 1px dashed #64748b !important;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.2s ease-out forwards;
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
