@@ -205,25 +205,27 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
         {/* Brand Header */}
         <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-700/80 bg-slate-900/40">
           <div className="flex items-center gap-3 min-w-0">
-            {settings.logoUrl ? (
-              <div className="w-11 h-11 rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                <img
-                  src={settings.logoUrl}
-                  alt="Logo"
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-lg text-white shadow-md">
-                <Pill className="w-5 h-5 text-white" />
-              </div>
-            )}
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${
+                settings.logoUrl ? "bg-white p-1 shadow-sm" : "bg-transparent p-0"
+              }`}
+            >
+              <img
+                src={settings.logoUrl || "/logo.png"}
+                alt="PharmaFlow Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div className="min-w-0">
               <span className="font-bold tracking-tight text-base sm:text-lg text-white block truncate leading-tight">
-                {settings.pharmacyName || "AK Pharmacy"}
+                PharmaFlow
               </span>
               <span className="text-[10px] text-slate-400 font-medium block truncate">
-                {settings.address ? settings.address.split(",")[0] : "Pharmacy Management"}
+                {settings.pharmacyName && settings.pharmacyName !== "PharmaFlow"
+                  ? settings.pharmacyName
+                  : settings.address
+                    ? settings.address.split(",")[0]
+                    : "Pharmacy Management"}
               </span>
             </div>
           </div>
@@ -319,13 +321,25 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
           <aside className="relative flex flex-col w-4/5 max-w-xs bg-[#1e293b] text-white h-full shadow-2xl z-10 animate-in slide-in-from-left duration-200">
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-900/40 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-xs">
-                  <Pill className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${
+                    settings.logoUrl ? "bg-white p-1 shadow-xs" : "bg-transparent p-0"
+                  }`}
+                >
+                  <img
+                    src={settings.logoUrl || "/logo.png"}
+                    alt="PharmaFlow Logo"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm text-white truncate">{settings.pharmacyName || "AK Pharmacy"}</h3>
-                  <span className="text-[10px] text-slate-400 font-medium block">All System Modules</span>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-white truncate">PharmaFlow</h3>
+                  <span className="text-[10px] text-slate-400 font-medium block truncate">
+                    {settings.pharmacyName && settings.pharmacyName !== "PharmaFlow"
+                      ? settings.pharmacyName
+                      : "All System Modules"}
+                  </span>
                 </div>
               </div>
 

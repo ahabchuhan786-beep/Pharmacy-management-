@@ -2923,6 +2923,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       {
         settings,
         priceListVersions,
+        activeVersionId,
         orders,
         purchases,
         returns,
@@ -2947,7 +2948,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.settings) setSettings(data.settings);
       if (Array.isArray(data.priceListVersions)) {
         setPriceListVersions(data.priceListVersions);
-        if (data.priceListVersions[0]) setActiveVersionId(data.priceListVersions[0].id);
+        if (data.activeVersionId) {
+          setActiveVersionId(data.activeVersionId);
+        } else if (data.priceListVersions[0]) {
+          setActiveVersionId(data.priceListVersions[0].id);
+        }
+      } else if (data.activeVersionId) {
+        setActiveVersionId(data.activeVersionId);
       }
       if (Array.isArray(data.orders)) setOrders(data.orders);
       if (Array.isArray(data.purchases)) setPurchases(data.purchases);
@@ -2959,6 +2966,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (Array.isArray(data.quotations)) setQuotations(data.quotations);
       if (Array.isArray(data.stockAdjustments)) setStockAdjustments(data.stockAdjustments);
       if (Array.isArray(data.recoveries)) setRecoveries(data.recoveries);
+      try {
+        localStorage.setItem(DB_INITIALIZED_KEY, "true");
+      } catch {
+        // Ignore storage errors
+      }
       return true;
     } catch (e) {
       console.error("Failed to import JSON data", e);

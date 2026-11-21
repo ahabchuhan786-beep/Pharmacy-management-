@@ -60,7 +60,7 @@ export const AndroidApkModal: React.FC<AndroidApkModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold">Install App &amp; Android APK</h2>
-              <p className="text-xs text-emerald-100">AK Pharmacy Management • اینڈروئیڈ ایپ انسٹالیشن</p>
+              <p className="text-xs text-emerald-100">PharmaFlow Management • اینڈروئیڈ ایپ انسٹالیشن</p>
             </div>
           </div>
           <button

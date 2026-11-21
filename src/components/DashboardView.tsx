@@ -209,10 +209,10 @@ export const DashboardView: React.FC = () => {
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-slate-700/60 text-blue-300 border border-slate-600 rounded text-xs font-semibold">
             <Pill className="w-3.5 h-3.5" />
-            <span>Pharmacy Order Management</span>
+            <span>PharmaFlow Management</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            {settings.pharmacyName || "PharmaPro"}
+            {settings.pharmacyName || "PharmaFlow"}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             Create error-free pharmaceutical purchase orders with instant fuzzy matching, strict chronological sequencing, automated mathematical audits, and authentic A4 invoice PDFs.

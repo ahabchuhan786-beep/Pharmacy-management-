@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.akpharmacy.management',
-  appName: 'AK Pharmacy',
+  appName: 'PharmaFlow',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

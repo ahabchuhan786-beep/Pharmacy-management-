@@ -68,6 +68,8 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
   const [inputQuery, setInputQuery] = useState("");
   const [inputQty, setInputQty] = useState<number | string>(1);
   const [candidates, setCandidates] = useState<MatchingCandidate[]>([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<MatchingCandidate | null>(null);
   const [showProductNotFound, setShowProductNotFound] = useState(false);
@@ -197,6 +199,7 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const customerInputRef = useRef<HTMLInputElement>(null);
 
+  const productSearchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
 
@@ -466,15 +469,42 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       }, 0);
   }, [draftOrder.customerName, draftOrder.id, orders]);
 
-  // Live fuzzy search suggestions while typing
+  // Close product dropdown when clicking outside
   useEffect(() => {
-    if (inputQuery.trim().length >= 2) {
-      const matches = findMatchingProducts(inputQuery, currentProducts, 6);
+    const handleClickOutsideProduct = (e: MouseEvent) => {
+      if (
+        productSearchContainerRef.current &&
+        !productSearchContainerRef.current.contains(e.target as Node)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutsideProduct);
+    return () => document.removeEventListener("mousedown", handleClickOutsideProduct);
+  }, []);
+
+  // Live fuzzy search suggestions while typing (same instant behavior as Quotations)
+  useEffect(() => {
+    if (inputQuery.trim().length >= 1) {
+      const matches = findMatchingProducts(inputQuery, currentProducts, 10);
       setCandidates(matches);
     } else {
       setCandidates([]);
     }
   }, [inputQuery, currentProducts]);
+
+  // Select product from dropdown (just like Quotations)
+  const handleSelectProductFromDropdown = (product: Product) => {
+    setSelectedProduct(product);
+    setInputQuery(product.name);
+    setShowProductDropdown(false);
+    setShowProductNotFound(false);
+    setStockError(null);
+    setTimeout(() => {
+      qtyInputRef.current?.focus();
+      qtyInputRef.current?.select();
+    }, 0);
+  };
 
   // Handle Add Product submit
   const handleAddSubmit = async (e?: React.FormEvent) => {
@@ -492,8 +522,23 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       return;
     }
 
+    // 0. If user already picked the exact product from dropdown
+    if (
+      selectedProduct &&
+      selectedProduct.name.trim().toLowerCase() === query.toLowerCase()
+    ) {
+      requestAddItem(
+        selectedProduct.name,
+        selectedProduct.price,
+        qty,
+        selectedProduct.id,
+        selectedProduct.category
+      );
+      return;
+    }
+
     // 1. Check local fuzzy matching candidates
-    const matches = findMatchingProducts(query, currentProducts, 6);
+    const matches = findMatchingProducts(query, currentProducts, 10);
 
     // If top match is 100% exact match
     if (matches.length > 0 && matches[0].score === 100) {
@@ -512,11 +557,12 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       setSelectedCandidate(matches[0]);
       setCandidates(matches);
       setShowMatchModal(true);
+      setShowProductDropdown(false);
       setShowProductNotFound(false);
       return;
     }
 
-    // If no local match, optionally try AI match or prompt not found
+    // If no local match -> prompt not found
     setShowProductNotFound(true);
   };
 
@@ -560,6 +606,8 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       setInputQuery("");
       setInputQty(1);
       setCandidates([]);
+      setSelectedProduct(null);
+      setShowProductDropdown(false);
       setShowMatchModal(false);
       setSelectedCandidate(null);
       searchInputRef.current?.focus();
@@ -581,6 +629,8 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       setInputQuery("");
       setInputQty(1);
       setCandidates([]);
+      setSelectedProduct(null);
+      setShowProductDropdown(false);
       setShowMatchModal(false);
       setSelectedCandidate(null);
       searchInputRef.current?.focus();
@@ -605,6 +655,8 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       setInputQuery("");
       setInputQty(1);
       setCandidates([]);
+      setSelectedProduct(null);
+      setShowProductDropdown(false);
       setShowMatchModal(false);
       setSelectedCandidate(null);
       searchInputRef.current?.focus();
@@ -1215,13 +1267,13 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
       </section>
 
       {/* QUICK ADD & ORDER ITEMS SECTION */}
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+      <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
         {/* Quick Add Product Bar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
           <form onSubmit={handleAddSubmit} className="relative">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 md:gap-4">
               {/* Search Input */}
-              <div className="flex-1 relative">
+              <div ref={productSearchContainerRef} className="flex-1 relative">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-[10px] uppercase font-bold text-slate-400">
                     Quick Add Product (Type name / shorthand...)
@@ -1243,60 +1295,82 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
                     ref={searchInputRef}
                     id="input-product-name"
                     type="text"
-                    placeholder="e.g. Certeza strip, B braun cannula, Sufra tule..."
+                    placeholder="Type product name to search catalog..."
                     value={inputQuery}
-                    onChange={(e) => setInputQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 text-sm sm:text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    onFocus={() => setShowProductDropdown(true)}
+                    onChange={(e) => {
+                      setInputQuery(e.target.value);
+                      setSelectedProduct(null);
+                      setShowProductDropdown(true);
+                      setShowProductNotFound(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowProductDropdown(false);
+                      }
+                    }}
+                    className="w-full pl-9 pr-9 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 text-sm sm:text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     autoComplete="off"
                   />
+                  {inputQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputQuery("");
+                        setSelectedProduct(null);
+                        setCandidates([]);
+                        setShowProductDropdown(false);
+                        searchInputRef.current?.focus();
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
-                {/* Live Search Quick Candidate Dropdown */}
-                {candidates.length > 0 && !showMatchModal && (
+                {/* Live Search Quick Candidate Dropdown (Quotation-style full product display) */}
+                {showProductDropdown && candidates.length > 0 && !showMatchModal && (
                   <div
                     id="dropdown-quick-matches"
-                    className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100"
+                    className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-40 max-h-64 overflow-y-auto divide-y divide-slate-100"
                   >
-                    <div className="px-3 py-1.5 bg-slate-50 text-[11px] font-semibold text-slate-400 flex justify-between">
-                      <span>Suggested Master Matches:</span>
-                      <span>Stock & Rate (PKR)</span>
-                    </div>
                     {candidates.map((cand) => {
                       const stockInfo = getItemAvailableStock(cand.product.id, cand.product.name);
                       return (
                         <button
                           key={cand.product.id}
                           type="button"
-                          onClick={() => {
-                            setSelectedCandidate(cand);
-                            setShowMatchModal(true);
-                          }}
-                          className="w-full px-3.5 py-2.5 text-left hover:bg-blue-50/60 flex items-center justify-between transition-colors text-xs sm:text-sm cursor-pointer group"
+                          onClick={() => handleSelectProductFromDropdown(cand.product)}
+                          className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 cursor-pointer flex items-start justify-between gap-3 transition-colors group"
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="font-semibold text-slate-800 group-hover:text-blue-600 truncate">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-blue-600 whitespace-normal break-words leading-snug">
                               {cand.product.name}
-                            </span>
-                            <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
-                              {cand.product.category}
-                            </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              {cand.product.category} &bull; Master Rate: Rs. {cand.product.price.toLocaleString("en-PK")}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
                             <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${
-                                stockInfo.availableStock > 0
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                                stockInfo.availableStock > 10
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : stockInfo.availableStock > 0
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {stockInfo.availableStock > 0
-                                ? `Avail: ${stockInfo.availableStock}`
-                                : stockInfo.hasPurchaseRecord
-                                ? "Out of Stock (0)"
-                                : "No Purchase Record"}
+                              {stockInfo.hasPurchaseRecord
+                                ? `Stock: ${stockInfo.availableStock} pkts`
+                                : "No Purchase (0)"}
+                            </span>
+                            <span className="font-mono font-bold text-xs text-blue-600">
+                              Rs. {cand.product.price.toLocaleString("en-PK")}
                             </span>
                           </div>
-                          <span className="font-mono font-bold text-blue-600 shrink-0 ml-2">
-                            Rs. {cand.product.price.toLocaleString("en-PK")}
-                          </span>
                         </button>
                       );
                     })}
@@ -1477,7 +1551,7 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
         )}
 
         {/* ORDER ITEMS TABLE */}
-        <div className="flex-1 overflow-x-auto p-0 min-h-[220px]">
+        <div className="flex-1 overflow-x-auto p-0 min-h-[220px] rounded-b-xl overflow-hidden">
           {draftOrder.items.length === 0 ? (
             <div className="py-14 px-4 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
@@ -2158,11 +2232,13 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
                             key={c.product.id}
                             type="button"
                             onClick={() => setSelectedCandidate(c)}
-                            className="w-full text-left py-1.5 px-2 hover:bg-slate-100 rounded flex items-center justify-between text-xs cursor-pointer group"
+                            className="w-full text-left py-1.5 px-2 hover:bg-slate-100 rounded flex items-start justify-between gap-2 text-xs cursor-pointer group"
                           >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="font-medium text-slate-800 group-hover:text-blue-600 truncate">{c.product.name}</span>
-                              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${otherStock.availableStock > 0 ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-medium text-slate-800 group-hover:text-blue-600 whitespace-normal break-words block">
+                                {c.product.name}
+                              </span>
+                              <span className={`inline-block mt-0.5 text-[10px] px-1.5 py-0.2 rounded font-mono ${otherStock.availableStock > 0 ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
                                 Avail: {otherStock.availableStock}
                               </span>
                             </div>

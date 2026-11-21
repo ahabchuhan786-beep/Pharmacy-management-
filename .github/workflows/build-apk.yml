@@ -63,31 +63,31 @@ jobs:
 
           keytool -genkeypair -v \
             -keystore release-key.jks \
-            -alias akpharmacy \
+            -alias pharmaflow \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass akpharmacy123 \
-            -keypass akpharmacy123 \
-            -dname "CN=AK Pharmacy, OU=Pharmacy, O=AK Pharmacy, L=Sahiwal, S=Punjab, C=PK"
+            -storepass pharmaflow123 \
+            -keypass pharmaflow123 \
+            -dname "CN=PharmaFlow, OU=Pharmacy, O=PharmaFlow, L=Sahiwal, S=Punjab, C=PK"
 
           UNSIGNED_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           ALIGNED_APK="release-apks/app-release-aligned.apk"
-          SIGNED_APK="release-apks/AK-Pharmacy-v1.0.${{ github.run_number }}.apk"
+          SIGNED_APK="release-apks/PharmaFlow-v1.0.${{ github.run_number }}.apk"
 
           "$BUILD_TOOLS_DIR/zipalign" -p -f -v 4 "$UNSIGNED_APK" "$ALIGNED_APK"
           "$BUILD_TOOLS_DIR/apksigner" sign \
             --ks release-key.jks \
-            --ks-key-alias akpharmacy \
-            --ks-pass pass:akpharmacy123 \
-            --key-pass pass:akpharmacy123 \
+            --ks-key-alias pharmaflow \
+            --ks-pass pass:pharmaflow123 \
+            --key-pass pass:pharmaflow123 \
             --out "$SIGNED_APK" \
             "$ALIGNED_APK"
 
           "$BUILD_TOOLS_DIR/apksigner" verify --verbose "$SIGNED_APK"
           rm -f "$ALIGNED_APK" release-key.jks
 
-          cp android/app/build/outputs/apk/debug/app-debug.apk "release-apks/AK-Pharmacy-v1.0.${{ github.run_number }}-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "release-apks/PharmaFlow-v1.0.${{ github.run_number }}-debug.apk"
           ls -lh release-apks/
 
       - name: Create GitHub Release & Upload APK
@@ -95,11 +95,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v1.0.${{ github.run_number }}"
-          SIGNED_APK="release-apks/AK-Pharmacy-v1.0.${{ github.run_number }}.apk"
-          DEBUG_APK="release-apks/AK-Pharmacy-v1.0.${{ github.run_number }}-debug.apk"
+          SIGNED_APK="release-apks/PharmaFlow-v1.0.${{ github.run_number }}.apk"
+          DEBUG_APK="release-apks/PharmaFlow-v1.0.${{ github.run_number }}-debug.apk"
           gh release create "$TAG" \
             "$SIGNED_APK" \
             "$DEBUG_APK" \
-            --title "AK Pharmacy Android APK ($TAG)" \
-            --notes "Automated Android APK build for AK Pharmacy Order Management & Invoice Generator. Download **AK-Pharmacy-$TAG.apk** to install directly on Android devices." \
+            --title "PharmaFlow Android APK ($TAG)" \
+            --notes "Automated Android APK build for PharmaFlow Order Management & Invoice Generator (preloaded with Al Barkat distribution backup data & transparent PharmaFlow branding). Download **PharmaFlow-$TAG.apk** to install directly on Android devices." \
             --latest

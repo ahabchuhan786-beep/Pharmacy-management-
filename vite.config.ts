@@ -14,8 +14,8 @@ export default defineConfig(() => {
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon.svg'],
         manifest: {
           id: '/',
-          name: 'Pharmacy Order Management & Invoice Generator',
-          short_name: 'AK Pharmacy',
+          name: 'PharmaFlow - Pharmacy Order Management',
+          short_name: 'PharmaFlow',
           description: 'Pharmacy Order Management, Invoicing, Stock Adjustment & Inventory Tracking System',
           theme_color: '#0f766e',
           background_color: '#f8fafc',

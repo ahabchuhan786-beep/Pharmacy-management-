@@ -23,12 +23,29 @@ import {
   Database,
   ShieldCheck,
   RotateCcw,
+  Copy,
 } from "lucide-react";
 import { AndroidApkModal } from "./AndroidApkModal";
 import { useFirebase } from "../context/FirebaseContext";
 
 export const SettingsView: React.FC = () => {
-  const { settings, updateSettings, priceListVersions, orders, resetToDefaultCatalog } = useApp();
+  const {
+    settings,
+    updateSettings,
+    priceListVersions,
+    activeVersionId,
+    orders,
+    purchases,
+    returns,
+    customers,
+    expenses,
+    investors,
+    distributions,
+    quotations,
+    stockAdjustments,
+    recoveries,
+    resetToDefaultCatalog,
+  } = useApp();
   const {
     user,
     signIn,
@@ -42,6 +59,7 @@ export const SettingsView: React.FC = () => {
   } = useFirebase();
   const [form, setForm] = useState<PharmacySettings>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [showApkModal, setShowApkModal] = useState(false);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -97,26 +115,71 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  // Full backup JSON export
-  const handleExportBackup = () => {
-    const backupData = {
-      version: "1.0",
-      exportDate: new Date().toISOString(),
-      settings: form,
-      priceListVersions,
-      orders,
-    };
+  const buildFullBackupPayload = () => ({
+    version: "2.4",
+    appName: "PharmaFlow",
+    exportDate: new Date().toISOString(),
+    settings: form,
+    priceListVersions,
+    activeVersionId,
+    orders,
+    purchases,
+    returns,
+    customers,
+    expenses,
+    investors,
+    distributions,
+    quotations,
+    stockAdjustments,
+    recoveries,
+  });
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Pharmacy_Full_Backup_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+  // Full backup JSON export (all 13 app collections)
+  const handleExportBackup = () => {
+    try {
+      const backupData = buildFullBackupPayload();
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.href = url;
+      downloadAnchor.download = `PharmaFlow_Full_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+
+      setBackupStatus({
+        type: "success",
+        message: `Full backup exported (${orders.length} orders, ${purchases.length} purchases, ${customers.length} customers, ${recoveries.length} recoveries).`,
+      });
+      setTimeout(() => setBackupStatus(null), 5000);
+    } catch {
+      setBackupStatus({
+        type: "error",
+        message: "Failed to generate backup file.",
+      });
+    }
   };
 
-  // Backup restore
+  // Copy full JSON backup to clipboard
+  const handleCopyBackup = async () => {
+    try {
+      const jsonText = JSON.stringify(buildFullBackupPayload());
+      await navigator.clipboard.writeText(jsonText);
+      setBackupStatus({
+        type: "success",
+        message: `Full JSON backup copied to clipboard (${orders.length} orders, ${purchases.length} purchases, ${customers.length} customers). You can paste it directly in chat!`,
+      });
+      setTimeout(() => setBackupStatus(null), 6000);
+    } catch {
+      setBackupStatus({
+        type: "error",
+        message: "Clipboard access blocked. Please use 'Export Full JSON Backup' to download the .json file.",
+      });
+    }
+  };
+
+  // Backup restore (all 13 app collections)
   const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,20 +188,70 @@ export const SettingsView: React.FC = () => {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
+        if (!json || typeof json !== "object") {
+          throw new Error("Invalid backup object");
+        }
+
         if (json.settings) {
           localStorage.setItem("ak_pharmacy_settings_v1", JSON.stringify(json.settings));
           setForm(json.settings);
         }
-        if (json.priceListVersions) {
+        if (Array.isArray(json.priceListVersions)) {
           localStorage.setItem("ak_pharmacy_price_versions_v1", JSON.stringify(json.priceListVersions));
+          if (json.activeVersionId) {
+            localStorage.setItem("ak_pharmacy_active_version_v1", json.activeVersionId);
+          } else if (json.priceListVersions[0]?.id) {
+            localStorage.setItem("ak_pharmacy_active_version_v1", json.priceListVersions[0].id);
+          }
+        } else if (json.activeVersionId) {
+          localStorage.setItem("ak_pharmacy_active_version_v1", json.activeVersionId);
         }
-        if (json.orders) {
+        if (Array.isArray(json.orders)) {
           localStorage.setItem("ak_pharmacy_orders_v1", JSON.stringify(json.orders));
         }
-        alert("Backup successfully restored! Reloading application...");
-        window.location.reload();
-      } catch (err) {
-        alert("Failed to parse backup JSON file. Ensure it is a valid backup.");
+        if (Array.isArray(json.purchases)) {
+          localStorage.setItem("ak_pharmacy_purchases_v1", JSON.stringify(json.purchases));
+        }
+        if (Array.isArray(json.returns)) {
+          localStorage.setItem("ak_pharmacy_returns_v1", JSON.stringify(json.returns));
+        }
+        if (Array.isArray(json.customers)) {
+          localStorage.setItem("ak_pharmacy_customers_v1", JSON.stringify(json.customers));
+        }
+        if (Array.isArray(json.expenses)) {
+          localStorage.setItem("ak_pharmacy_expenses_v1", JSON.stringify(json.expenses));
+        }
+        if (Array.isArray(json.investors)) {
+          localStorage.setItem("ak_pharmacy_investors_v1", JSON.stringify(json.investors));
+        }
+        if (Array.isArray(json.distributions)) {
+          localStorage.setItem("ak_pharmacy_distributions_v1", JSON.stringify(json.distributions));
+        }
+        if (Array.isArray(json.quotations)) {
+          localStorage.setItem("ak_pharmacy_quotations_v1", JSON.stringify(json.quotations));
+        }
+        if (Array.isArray(json.stockAdjustments)) {
+          localStorage.setItem("ak_pharmacy_stock_adjustments_v1", JSON.stringify(json.stockAdjustments));
+        }
+        if (Array.isArray(json.recoveries)) {
+          localStorage.setItem("ak_pharmacy_recoveries_v1", JSON.stringify(json.recoveries));
+        }
+
+        localStorage.setItem("ak_pharmacy_db_initialized_v2", "true");
+        setBackupStatus({
+          type: "success",
+          message: "Full backup restored! Reloading PharmaFlow...",
+        });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch {
+        setBackupStatus({
+          type: "error",
+          message: "Failed to parse backup JSON file. Ensure it is a valid PharmaFlow backup.",
+        });
+      } finally {
+        if (jsonFileInputRef.current) jsonFileInputRef.current.value = "";
       }
     };
     reader.readAsText(file);
@@ -544,7 +657,24 @@ export const SettingsView: React.FC = () => {
           <span>Data Backup, Export & Factory Reset</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {backupStatus && (
+          <div
+            className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+              backupStatus.type === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}
+          >
+            {backupStatus.type === "success" ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+            )}
+            <span>{backupStatus.message}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             type="button"
             onClick={handleExportBackup}
@@ -555,7 +685,21 @@ export const SettingsView: React.FC = () => {
               <span>Export Full JSON Backup</span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Download all price list versions, products, and order history as a backup file.
+              Download all products, orders, purchases, customers, recoveries, expenses, returns, adjustments, quotations, investors, and settings.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyBackup}
+            className="p-3.5 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200 rounded-xl text-left space-y-1 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+              <Copy className="w-4 h-4 text-emerald-600" />
+              <span>Copy Full JSON Backup</span>
+            </div>
+            <p className="text-[11px] text-emerald-700">
+              Copy all app data as JSON text in 1 tap so you can paste or share it easily.
             </p>
           </button>
 
@@ -575,7 +719,7 @@ export const SettingsView: React.FC = () => {
               <span>Restore from JSON Backup</span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Load previously exported price lists, settings, and orders.
+              Restore all saved catalogs, invoices, purchases, customers, ledgers, and settings from a backup file.
             </p>
           </div>
 

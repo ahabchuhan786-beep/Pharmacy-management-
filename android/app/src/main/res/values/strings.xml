@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AK Pharmacy</string>
-    <string name="title_activity_main">AK Pharmacy</string>
+    <string name="app_name">PharmaFlow</string>
+    <string name="title_activity_main">PharmaFlow</string>
     <string name="package_name">com.akpharmacy.management</string>
     <string name="custom_url_scheme">com.akpharmacy.management</string>
 </resources>
