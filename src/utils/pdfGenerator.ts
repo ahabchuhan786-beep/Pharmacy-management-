@@ -64,170 +64,202 @@ export function generateOrderPdf(order: Order, settings: PharmacySettings): jsPD
 }
 
 /**
+ * Shared footer pagination stamp helper across all invoice templates
+ */
+function stampInvoicePageNumbers(
+  doc: jsPDF,
+  margin: number,
+  pageWidth: number,
+  pageHeight: number,
+  fullDateTime: string
+) {
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Printed: ${fullDateTime}`, margin, pageHeight - 5);
+    doc.text(`Page ${p} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: "center" });
+    doc.text("PharmaFlow Invoice", pageWidth - margin, pageHeight - 5, { align: "right" });
+  }
+}
+
+/**
  * 1. NAFEES / AK PHARMACY INVOICE TEMPLATE
- * Authentic pharmacy invoice style with exact reference columns:
+ * Centered, large-text A4 layout with dynamic row wrapping and height-aware pagination:
  * [# | Item Description | Batch | Rate | Qty | Bon | Gross | Disc % | Net Amt]
- * (Expiry and Disc 1 columns removed as requested)
- * Strictly keeps up to 30 items on the first page, remaining items on the second page.
  */
 function renderNafeesAkInvoiceTemplate(doc: jsPDF, order: Order, settings: PharmacySettings) {
   const pageWidth = 210;
   const pageHeight = 297;
-  const margin = 8;
-  const printableWidth = pageWidth - margin * 2;
+  const margin = 10;
+  const printableWidth = pageWidth - margin * 2; // 190mm (strictly centered on 210mm A4)
   const dtInfo = getFormattedDateTime(order.orderDate);
+  const maxPageBottom = pageHeight - 13;
 
-  const PAGE1_MAX_ITEMS = 30;
-  const SUBSEQUENT_PAGE_MAX_ITEMS = 36;
-
-  const totalItems = order.items.length;
-  const page1Items = order.items.slice(0, PAGE1_MAX_ITEMS);
-  const remainingItems = order.items.slice(PAGE1_MAX_ITEMS);
-  const totalPages = totalItems > PAGE1_MAX_ITEMS ? 1 + Math.ceil(remainingItems.length / SUBSEQUENT_PAGE_MAX_ITEMS) : 1;
-
-  // Streamlined 9 columns (Exp. and Disc 1 removed)
+  // 9 columns summing strictly to 190mm
   const cols = [
-    { label: "#", width: 8, align: "center" as const },
-    { label: "Item Description", width: 78, align: "left" as const },
+    { label: "#", width: 9, align: "center" as const },
+    { label: "Item Description", width: 68, align: "left" as const },
     { label: "Batch", width: 16, align: "center" as const },
-    { label: "Rate", width: 18, align: "right" as const },
+    { label: "Rate", width: 19, align: "right" as const },
     { label: "Qty", width: 13, align: "center" as const },
     { label: "Bon", width: 11, align: "center" as const },
-    { label: "Gross", width: 18, align: "right" as const },
+    { label: "Gross", width: 20, align: "right" as const },
     { label: "Disc %", width: 13, align: "right" as const },
-    { label: "Net Amt", width: 19, align: "right" as const },
+    { label: "Net Amt", width: 21, align: "right" as const },
   ];
 
   let currentY = margin;
 
-  // --- PAGE 1: HEADER SECTION ---
+  // --- PAGE 1: CENTERED HEADER SECTION ---
   if (settings.logoUrl) {
     try {
-      doc.addImage(settings.logoUrl, margin + 2, currentY, 17, 17);
+      const logoSize = 18;
+      doc.addImage(settings.logoUrl, (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
+      currentY += logoSize + 2.5;
     } catch (e) {
       console.warn("Could not embed logo in PDF", e);
     }
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.setTextColor(20, 30, 45);
-  doc.text((settings.pharmacyName || "AK PHARMACY").toUpperCase(), pageWidth / 2, currentY + 4.5, { align: "center" });
+  doc.setFontSize(18);
+  doc.setTextColor(15, 23, 42);
+  doc.text((settings.pharmacyName || "AK PHARMACY").toUpperCase(), pageWidth / 2, currentY + 4, {
+    align: "center",
+    baseline: "middle",
+  });
+  currentY += 8.5;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(60, 60, 60);
-  currentY += 8;
-  doc.text(settings.address || "16, Sahiwal Estate, Arif Road, Sahiwal", pageWidth / 2, currentY, { align: "center" });
-  currentY += 3.5;
-  doc.text(
-    `Phone: ${settings.phone || "040-4500933, 34"}  |  Lic. No.: ${settings.licenseNo || "02-367-0154-110890D"}  |  NTN #: ${settings.ntn || "3159783-1"}`,
-    pageWidth / 2,
-    currentY,
-    { align: "center" }
+  doc.setFontSize(9.5);
+  doc.setTextColor(55, 65, 81);
+  const addrLines = doc.splitTextToSize(
+    settings.address || "16, Sahiwal Estate, Arif Road, Sahiwal",
+    printableWidth - 10
   );
+  addrLines.forEach((line: string) => {
+    doc.text(line, pageWidth / 2, currentY, { align: "center", baseline: "middle" });
+    currentY += 4.5;
+  });
 
-  currentY += 3;
-  doc.setDrawColor(40, 60, 90);
-  doc.setLineWidth(0.4);
+  const contactLine = `Phone: ${settings.phone || "040-4500933, 34"}  |  Lic. No.: ${
+    settings.licenseNo || "02-367-0154-110890D"
+  }  |  NTN #: ${settings.ntn || "3159783-1"}`;
+  doc.setFontSize(8.8);
+  const contactLines = doc.splitTextToSize(contactLine, printableWidth - 6);
+  contactLines.forEach((line: string) => {
+    doc.text(line, pageWidth / 2, currentY, { align: "center", baseline: "middle" });
+    currentY += 4.2;
+  });
+
+  currentY += 1;
+  doc.setDrawColor(30, 41, 59);
+  doc.setLineWidth(0.5);
   doc.line(margin, currentY, pageWidth - margin, currentY);
 
-  // Title Box
-  currentY += 3.5;
+  // Centered Title Pill
+  currentY += 3;
+  const badgeW = 68;
+  const badgeH = 7.5;
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.3);
+  doc.roundedRect((pageWidth - badgeW) / 2, currentY, badgeW, badgeH, 1.5, 1.5, "FD");
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text("SALE ORDER / INVOICE", pageWidth / 2, currentY, { align: "center" });
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text("SALE ORDER / INVOICE", pageWidth / 2, currentY + badgeH / 2, {
+    align: "center",
+    baseline: "middle",
+  });
 
   // --- CUSTOMER & ORDER INFO GRID ---
-  currentY += 2.5;
+  currentY += badgeH + 3.5;
   const infoBoxY = currentY;
-  const infoBoxHeight = 17;
-  doc.setDrawColor(180, 185, 195);
-  doc.setLineWidth(0.2);
-  doc.rect(margin, infoBoxY, printableWidth, infoBoxHeight);
+  const midX = margin + printableWidth * 0.56;
+  const leftValMaxW = printableWidth * 0.56 - 35;
+  const rightValMaxW = printableWidth * 0.44 - 28;
 
-  // Vertical divider
-  const midX = margin + printableWidth * 0.55;
+  doc.setFontSize(8.8);
+  const custNameText = order.customerName || "WALK-IN / COUNTER PHARMACY";
+  const addrStr = [order.customerAddress, order.customerCity].filter(Boolean).join(", ") || "---";
+  const licNtnPhone = `${order.customerLicenseNo || "---"} / ${order.customerNtn || "---"}${
+    order.customerPhone ? " | Ph: " + order.customerPhone : ""
+  }`;
+
+  doc.setFont("helvetica", "normal");
+  const custLines = doc.splitTextToSize(custNameText, leftValMaxW);
+  const addrBoxLines = doc.splitTextToSize(addrStr, leftValMaxW);
+  const licLines = doc.splitTextToSize(licNtnPhone, leftValMaxW);
+  const priceLines = doc.splitTextToSize(order.priceListVersion || "Price List v1", rightValMaxW);
+
+  const linePitch = 4.6;
+  const leftContentLines = Math.max(1, custLines.length) + 1 + Math.max(1, addrBoxLines.length) + Math.max(1, licLines.length);
+  const rightContentLines = 3 + Math.max(1, priceLines.length);
+  const infoBoxHeight = Math.max(leftContentLines, rightContentLines) * linePitch + 5;
+
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.25);
+  doc.rect(margin, infoBoxY, printableWidth, infoBoxHeight);
   doc.line(midX, infoBoxY, midX, infoBoxY + infoBoxHeight);
 
   // Left Column - Customer Details
-  doc.setFontSize(7.5);
-  const leftX = margin + 2;
-  let leftY = infoBoxY + 3.8;
+  const leftX = margin + 3;
+  const leftValX = leftX + 29;
+  let leftY = infoBoxY + 4.5;
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Customer / Pharmacy:", leftX, leftY);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.customerName || "WALK-IN / COUNTER PHARMACY", leftX + 31, leftY);
+  const drawInfoRow = (label: string, lines: string[], x: number, valX: number, yStart: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.8);
+    doc.setTextColor(51, 65, 85);
+    doc.text(label, x, yStart, { baseline: "middle" });
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(15, 23, 42);
+    lines.forEach((ln, idx) => {
+      doc.text(ln, valX, yStart + idx * linePitch, { baseline: "middle" });
+    });
+    return yStart + Math.max(1, lines.length) * linePitch;
+  };
 
-  leftY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Customer Code:", leftX, leftY);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.customerCode || "---", leftX + 31, leftY);
-
-  leftY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Address & City:", leftX, leftY);
-  doc.setFont("helvetica", "normal");
-  const addrStr = [order.customerAddress, order.customerCity].filter(Boolean).join(", ") || "---";
-  doc.text(addrStr.length > 40 ? addrStr.substring(0, 38) + "..." : addrStr, leftX + 31, leftY);
-
-  leftY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Lic. # / NTN:", leftX, leftY);
-  doc.setFont("helvetica", "normal");
-  const licNtnPhone = `${order.customerLicenseNo || "---"} / ${order.customerNtn || "---"}${order.customerPhone ? "  |  Ph: " + order.customerPhone : ""}`;
-  doc.text(licNtnPhone.length > 44 ? licNtnPhone.substring(0, 42) + "..." : licNtnPhone, leftX + 31, leftY);
+  leftY = drawInfoRow("Customer:", custLines, leftX, leftValX, leftY);
+  leftY = drawInfoRow("Cust. Code:", [order.customerCode || "---"], leftX, leftValX, leftY);
+  leftY = drawInfoRow("Address:", addrBoxLines, leftX, leftValX, leftY);
+  drawInfoRow("Lic. / NTN:", licLines, leftX, leftValX, leftY);
 
   // Right Column - Order, Date & Salesman Details
-  const rightX = midX + 2;
-  let rightY = infoBoxY + 3.8;
+  const rightX = midX + 3;
+  const rightValX = rightX + 23;
+  let rightY = infoBoxY + 4.5;
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Order No.:", rightX, rightY);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.orderNumber || "ORD-0001", rightX + 21, rightY);
+  rightY = drawInfoRow("Order No.:", [order.orderNumber || "ORD-0001"], rightX, rightValX, rightY);
+  rightY = drawInfoRow("Order Date:", [dtInfo.formattedDate], rightX, rightValX, rightY);
+  rightY = drawInfoRow("Salesman:", [order.salesman || settings.defaultSalesman || "ADNAN"], rightX, rightValX, rightY);
+  drawInfoRow("Price List:", priceLines, rightX, rightValX, rightY);
 
-  rightY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Order Date:", rightX, rightY);
-  doc.setFont("helvetica", "normal");
-  doc.text(dtInfo.formattedDate, rightX + 21, rightY);
-
-  rightY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Salesman:", rightX, rightY);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.salesman || settings.defaultSalesman || "ADNAN", rightX + 21, rightY);
-
-  rightY += 3.8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Price List:", rightX, rightY);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.priceListVersion || "Price List v1", rightX + 21, rightY);
-
-  // --- ITEM TABLE HEADER ---
-  currentY = infoBoxY + infoBoxHeight + 2.5;
-  const headerHeight = 5;
-  const rowHeight = 4.5;
+  // --- ITEM TABLE ---
+  currentY = infoBoxY + infoBoxHeight + 3.5;
+  const headerHeight = 7.5;
+  const baseRowHeight = 6.5;
 
   const drawTableHeader = (y: number) => {
-    doc.setFillColor(240, 243, 248);
+    doc.setFillColor(235, 240, 248);
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.25);
     doc.rect(margin, y, printableWidth, headerHeight, "FD");
-    doc.setDrawColor(180, 185, 195);
-    doc.setLineWidth(0.2);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(30, 40, 60);
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
 
     let colX = margin;
     cols.forEach((col) => {
-      let textX =
-        colX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 1.5 : 1.5);
-      doc.text(col.label, textX, y + 3.6, { align: col.align });
+      const textX =
+        colX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2 : 2);
+      doc.text(col.label, textX, y + headerHeight / 2, { align: col.align, baseline: "middle" });
       colX += col.width;
       if (colX < margin + printableWidth) {
         doc.line(colX, y, colX, y + headerHeight);
@@ -235,24 +267,48 @@ function renderNafeesAkInvoiceTemplate(doc: jsPDF, order: Order, settings: Pharm
     });
   };
 
+  const drawContinuationHeader = (pageNumber: number) => {
+    doc.setFillColor(241, 245, 249);
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.25);
+    doc.rect(margin, margin, printableWidth, 14, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(
+      `${(settings.pharmacyName || "AK PHARMACY").toUpperCase()} — SALE ORDER / INVOICE (Cont. Pg ${pageNumber})`,
+      pageWidth / 2,
+      margin + 4.8,
+      { align: "center", baseline: "middle" }
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text(
+      `Order #: ${order.orderNumber}   |   Date: ${dtInfo.formattedDate}   |   Customer: ${
+        order.customerName || "Counter Sale"
+      }`,
+      pageWidth / 2,
+      margin + 10.2,
+      { align: "center", baseline: "middle" }
+    );
+
+    currentY = margin + 16.5;
+    drawTableHeader(currentY);
+    currentY += headerHeight;
+  };
+
   drawTableHeader(currentY);
   currentY += headerHeight;
 
-  // Render Page 1 rows (Max 30 items)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(20, 20, 20);
-
   let totalQty = 0;
+  let pageCount = 1;
 
-  page1Items.forEach((item, index) => {
-    const isEven = index % 2 === 1;
-    if (isEven) {
-      doc.setFillColor(250, 252, 255);
-      doc.rect(margin, currentY, printableWidth, rowHeight, "F");
-    }
-
-    doc.rect(margin, currentY, printableWidth, rowHeight);
+  order.items.forEach((item, index) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
 
     const itemRate = Number(item.rate) || 0;
     const itemQty = Number(item.quantity) || 0;
@@ -262,10 +318,47 @@ function renderNafeesAkInvoiceTemplate(doc: jsPDF, order: Order, settings: Pharm
     const prodName = String(item.productName || "Item");
     totalQty += itemQty;
 
-    const values = [
+    const wrappedName = doc.splitTextToSize(prodName, cols[1].width - 4);
+    const thisRowHeight = Math.max(baseRowHeight, wrappedName.length * 4.2 + 2.4);
+
+    // Reserve ~11mm at bottom of overflowing page for clean continuation banner
+    if (currentY + thisRowHeight > maxPageBottom - 10) {
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(148, 163, 184);
+      doc.rect(margin, currentY + 2, printableWidth, 7, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.8);
+      doc.setTextColor(30, 64, 175);
+      doc.text(
+        `--- CONTINUED ON PAGE ${pageCount + 1} (Remaining ${order.items.length - index} items) ---`,
+        pageWidth / 2,
+        currentY + 5.5,
+        { align: "center", baseline: "middle" }
+      );
+
+      doc.addPage();
+      pageCount++;
+      drawContinuationHeader(pageCount);
+    }
+
+    const isEven = index % 2 === 1;
+    doc.setDrawColor(180, 188, 200);
+    doc.setLineWidth(0.2);
+    if (isEven) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(margin, currentY, printableWidth, thisRowHeight, "FD");
+    } else {
+      doc.rect(margin, currentY, printableWidth, thisRowHeight);
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+
+    const values: Array<string | string[]> = [
       (index + 1).toString(),
-      prodName.length > 44 ? prodName.substring(0, 42) + ".." : prodName,
-      item.batch || "",
+      wrappedName,
+      item.batch || "-",
       itemRate.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
       itemQty.toString(),
       (item.bon || 0).toString(),
@@ -275,166 +368,120 @@ function renderNafeesAkInvoiceTemplate(doc: jsPDF, order: Order, settings: Pharm
     ];
 
     let rowX = margin;
+    const rowMidY = currentY + thisRowHeight / 2;
     cols.forEach((col, cIdx) => {
-      let textX =
-        rowX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 1.5 : 1.5);
-      doc.text(values[cIdx], textX, currentY + 3.3, { align: col.align });
+      const textX =
+        rowX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2 : 2);
+      const val = values[cIdx];
+
+      if (cIdx === 8) {
+        doc.setFont("helvetica", "bold");
+      } else {
+        doc.setFont("helvetica", "normal");
+      }
+
+      if (Array.isArray(val)) {
+        const blockH = (val.length - 1) * 4.2;
+        const firstLineY = rowMidY - blockH / 2;
+        val.forEach((lineStr, lIdx) => {
+          doc.text(lineStr, textX, firstLineY + lIdx * 4.2, { align: col.align, baseline: "middle" });
+        });
+      } else {
+        doc.text(val, textX, rowMidY, { align: col.align, baseline: "middle" });
+      }
+
       rowX += col.width;
       if (rowX < margin + printableWidth) {
-        doc.line(rowX, currentY, rowX, currentY + rowHeight);
+        doc.setDrawColor(180, 188, 200);
+        doc.line(rowX, currentY, rowX, currentY + thisRowHeight);
       }
     });
 
-    currentY += rowHeight;
+    currentY += thisRowHeight;
   });
 
-  // If there's only 1 page (<= 30 items), render totals & footer on Page 1
-  if (totalItems <= PAGE1_MAX_ITEMS) {
-    // Fill empty rows if less than 6 items for clean structure
-    const remainingRows = Math.max(0, 5 - totalItems);
-    for (let r = 0; r < remainingRows; r++) {
-      doc.rect(margin, currentY, printableWidth, rowHeight);
+  // Pad minimum rows when only a few items exist on Page 1 for balanced invoice frame
+  if (pageCount === 1 && order.items.length < 5) {
+    const emptyRows = 5 - order.items.length;
+    for (let r = 0; r < emptyRows; r++) {
+      if (currentY + baseRowHeight > maxPageBottom - 68) break;
+      doc.setDrawColor(180, 188, 200);
+      doc.rect(margin, currentY, printableWidth, baseRowHeight);
       let rX = margin;
       cols.forEach((col) => {
         rX += col.width;
         if (rX < margin + printableWidth) {
-          doc.line(rX, currentY, rX, currentY + rowHeight);
+          doc.line(rX, currentY, rX, currentY + baseRowHeight);
         }
       });
-      currentY += rowHeight;
-    }
-
-    renderTotalsAndFooter(doc, order, settings, currentY, margin, printableWidth, pageWidth, totalQty, dtInfo, 1, 1);
-  } else {
-    // Page 1 Continuation Footer (when items > 30)
-    currentY += 3;
-    doc.setFillColor(245, 247, 250);
-    doc.rect(margin, currentY, printableWidth, 7, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(30, 64, 175);
-    doc.text(
-      `--- CONTINUED ON PAGE 2 (Items 31 to ${totalItems}) ---`,
-      pageWidth / 2,
-      currentY + 4.8,
-      { align: "center" }
-    );
-
-    doc.setFontSize(7);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Page 1 of ${totalPages}`, pageWidth - margin - 3, pageHeight - 5, { align: "right" });
-    doc.text(`Printed: ${dtInfo.fullDateTime}`, margin + 3, pageHeight - 5);
-
-    // --- PAGE 2 (AND SUBSEQUENT PAGES) ---
-    let remaining = [...remainingItems];
-    let pageNum = 2;
-
-    while (remaining.length > 0) {
-      doc.addPage();
-      currentY = margin;
-
-      // Page Header for Page 2+
-      doc.setFillColor(248, 250, 252);
-      doc.rect(margin, currentY, printableWidth, 12, "FD");
-
-      if (settings.logoUrl) {
-        try {
-          doc.addImage(settings.logoUrl, margin + 2, currentY + 1, 10, 10);
-        } catch (e) {
-          console.warn("Could not embed logo on page 2", e);
-        }
-      }
-
-      const pTitleX = settings.logoUrl ? margin + 15 : margin + 3;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(20, 30, 45);
-      doc.text(
-        `${(settings.pharmacyName || "AK PHARMACY").toUpperCase()} - SALE ORDER / INVOICE (Page ${pageNum} of ${totalPages})`,
-        pTitleX,
-        currentY + 4.8
-      );
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(70, 80, 95);
-      doc.text(
-        `Order #: ${order.orderNumber}  |  Date: ${dtInfo.formattedDate}  |  Customer: ${order.customerName || "Counter Sale"}  |  Salesman: ${order.salesman || "ADNAN"}`,
-        pTitleX,
-        currentY + 9.2
-      );
-
-      currentY += 14;
-
-      // Draw table header
-      drawTableHeader(currentY);
-      currentY += headerHeight;
-
-      // Slice items for this page
-      const currentBatch = remaining.slice(0, SUBSEQUENT_PAGE_MAX_ITEMS);
-      remaining = remaining.slice(SUBSEQUENT_PAGE_MAX_ITEMS);
-
-      currentBatch.forEach((item, bIdx) => {
-        const globalIdx = PAGE1_MAX_ITEMS + (pageNum - 2) * SUBSEQUENT_PAGE_MAX_ITEMS + bIdx;
-        const isEven = bIdx % 2 === 1;
-        if (isEven) {
-          doc.setFillColor(250, 252, 255);
-          doc.rect(margin, currentY, printableWidth, rowHeight, "F");
-        }
-
-        doc.rect(margin, currentY, printableWidth, rowHeight);
-
-        const itemRate = Number(item.rate) || 0;
-        const itemQty = Number(item.quantity) || 0;
-        const gross = itemRate * itemQty;
-        const net = item.amount !== undefined ? Number(item.amount) || 0 : gross;
-        const discPercent = Number(item.disc2 || item.disc1 || 0);
-        const prodName = String(item.productName || "Item");
-        totalQty += itemQty;
-
-        const values = [
-          (globalIdx + 1).toString(),
-          prodName.length > 44 ? prodName.substring(0, 42) + ".." : prodName,
-          item.batch || "",
-          itemRate.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
-          itemQty.toString(),
-          (item.bon || 0).toString(),
-          gross.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
-          discPercent > 0 ? discPercent.toFixed(2) : "0.00",
-          net.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
-        ];
-
-        let rowX = margin;
-        cols.forEach((col, cIdx) => {
-          let textX =
-            rowX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 1.5 : 1.5);
-          doc.text(values[cIdx], textX, currentY + 3.3, { align: col.align });
-          rowX += col.width;
-          if (rowX < margin + printableWidth) {
-            doc.line(rowX, currentY, rowX, currentY + rowHeight);
-          }
-        });
-
-        currentY += rowHeight;
-      });
-
-      // If last page, render Totals & Footer
-      if (remaining.length === 0) {
-        renderTotalsAndFooter(doc, order, settings, currentY, margin, printableWidth, pageWidth, totalQty, dtInfo, pageNum, totalPages);
-      } else {
-        doc.setFontSize(7);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 3, pageHeight - 5, { align: "right" });
-        doc.text(`Printed: ${dtInfo.fullDateTime}`, margin + 3, pageHeight - 5);
-      }
-
-      pageNum++;
+      currentY += baseRowHeight;
     }
   }
+
+  // Estimate totals + footer height; move cleanly to new page if insufficient room
+  const prevPending = Number(order.previousPendingAmount) || 0;
+  const paid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
+  const pending = order.pendingAmount !== undefined ? Number(order.pendingAmount) : Math.max(0, Number(order.grandTotal) - paid);
+  const hasPending = pending > 0 || prevPending > 0;
+  const estTotalsH = hasPending ? 36 : 30;
+
+  const remarksText =
+    settings.footerRemarks ||
+    DEFAULT_SETTINGS.footerRemarks ||
+    "All surgical items/stock must be checked immediately upon receipt of every supply. Any shortage, missing item, damaged item, or discrepancy must be reported immediately to the concerned person/supplier. Once the stock has been received and verified, any later claim regarding shortage or missing items may not be entertained.";
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  const splitRemarks = doc.splitTextToSize(remarksText, printableWidth - 22);
+  const estRemarksH = Math.max(11, splitRemarks.length * 3.8 + 5);
+  const estFooterH = estRemarksH + 14;
+  const totalSummaryHeight = 3 + estTotalsH + 3 + estFooterH;
+
+  if (currentY + totalSummaryHeight > maxPageBottom) {
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(148, 163, 184);
+    doc.rect(margin, currentY + 2, printableWidth, 7, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.8);
+    doc.setTextColor(30, 64, 175);
+    doc.text(
+      `--- SUMMARY & TOTALS CONTINUED ON PAGE ${pageCount + 1} ---`,
+      pageWidth / 2,
+      currentY + 5.5,
+      { align: "center", baseline: "middle" }
+    );
+
+    doc.addPage();
+    pageCount++;
+    doc.setFillColor(241, 245, 249);
+    doc.setDrawColor(148, 163, 184);
+    doc.rect(margin, margin, printableWidth, 14, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(
+      `${(settings.pharmacyName || "AK PHARMACY").toUpperCase()} — INVOICE SUMMARY (Pg ${pageCount})`,
+      pageWidth / 2,
+      margin + 5,
+      { align: "center", baseline: "middle" }
+    );
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text(
+      `Order #: ${order.orderNumber}   |   Date: ${dtInfo.formattedDate}   |   Customer: ${order.customerName || "Counter Sale"}`,
+      pageWidth / 2,
+      margin + 10.2,
+      { align: "center", baseline: "middle" }
+    );
+    currentY = margin + 17;
+  }
+
+  renderTotalsAndFooter(doc, order, settings, currentY, margin, printableWidth, pageWidth, totalQty, dtInfo);
+  stampInvoicePageNumbers(doc, margin, pageWidth, pageHeight, dtInfo.fullDateTime);
 }
 
 /**
- * Shared Totals & Summary Block + Signature Footer for Nafees / AK template
+ * Shared Totals & Summary Block + Centered 4-Column Signature Footer
  */
 function renderTotalsAndFooter(
   doc: jsPDF,
@@ -443,61 +490,86 @@ function renderTotalsAndFooter(
   startY: number,
   margin: number,
   printableWidth: number,
-  pageWidth: number,
+  _pageWidth: number,
   totalQty: number,
-  dtInfo: { formattedDate: string; formattedTime: string; fullDateTime: string },
-  pageNum: number,
-  totalPages: number
+  dtInfo: { formattedDate: string; formattedTime: string; fullDateTime: string }
 ) {
-  let currentY = startY + 2;
+  let currentY = startY + 3;
   const totalsBoxY = currentY;
 
   const prevPending = Number(order.previousPendingAmount) || 0;
   const paid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
   const pending = order.pendingAmount !== undefined ? Number(order.pendingAmount) : Math.max(0, Number(order.grandTotal) - paid);
   const hasPending = pending > 0 || prevPending > 0;
-  const totalsBoxHeight = hasPending ? 26 : 22;
 
-  const totalPayable = Number(order.grandTotal) + prevPending;
+  const wordsBoxWidth = printableWidth * 0.55;
+  const financialBoxX = margin + wordsBoxWidth + 2.5;
+  const financialBoxWidth = printableWidth - wordsBoxWidth - 2.5;
+
+  const wordsText = convertRupeesToWords(order.grandTotal);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  const wrappedWords = doc.splitTextToSize(wordsText, wordsBoxWidth - 6);
+
+  const totalsBoxHeight = Math.max(hasPending ? 36 : 30, 21 + wrappedWords.length * 4.2);
+
   const netPending = pending + prevPending;
   const paymentStatus = order.paymentStatus || (netPending === 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid");
 
-  // Amount In Words & Payment Info Box (Left 56%)
-  const wordsBoxWidth = printableWidth * 0.56;
+  // Left Box: Counts, Status & Amount in Words
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.25);
   doc.rect(margin, totalsBoxY, wordsBoxWidth, totalsBoxHeight);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(40, 50, 70);
-  doc.text("Total Items:", margin + 3, totalsBoxY + 4.5);
+  doc.setFontSize(8.8);
+  doc.setTextColor(51, 65, 85);
+  doc.text("Total Items:", margin + 3, totalsBoxY + 5, { baseline: "middle" });
   doc.setFont("helvetica", "normal");
-  doc.text(`${order.items.length} Lines  |  Total Qty: ${totalQty} Pcs`, margin + 20, totalsBoxY + 4.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`${order.items.length} Lines   |   Total Qty: ${totalQty} Pcs`, margin + 25, totalsBoxY + 5, {
+    baseline: "middle",
+  });
 
   doc.setFont("helvetica", "bold");
-  doc.text("Payment Status:", margin + 3, totalsBoxY + 9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(paymentStatus === "Paid" ? 16 : paymentStatus === "Partial" ? 180 : 200, paymentStatus === "Paid" ? 130 : paymentStatus === "Partial" ? 100 : 30, paymentStatus === "Paid" ? 60 : 30);
+  doc.setTextColor(51, 65, 85);
+  doc.text("Status:", margin + 3, totalsBoxY + 10.2, { baseline: "middle" });
+  doc.setTextColor(
+    paymentStatus === "Paid" ? 16 : paymentStatus === "Partial" ? 180 : 200,
+    paymentStatus === "Paid" ? 130 : paymentStatus === "Partial" ? 100 : 30,
+    paymentStatus === "Paid" ? 60 : 30
+  );
   doc.text(
-    `${paymentStatus.toUpperCase()} (${order.paymentMethod || "Cash"})${order.dueDate && netPending > 0 ? `  |  Due: ${order.dueDate}` : ""}`,
-    margin + 26,
-    totalsBoxY + 9
+    `${paymentStatus.toUpperCase()} (${order.paymentMethod || "Cash"})${
+      order.dueDate && netPending > 0 ? `  |  Due: ${order.dueDate}` : ""
+    }`,
+    margin + 25,
+    totalsBoxY + 10.2,
+    { baseline: "middle" }
   );
 
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(40, 50, 70);
-  doc.text("Amount in Words:", margin + 3, totalsBoxY + 14);
-  doc.setFont("helvetica", "normal");
-  const wordsText = convertRupeesToWords(order.grandTotal);
-  doc.text(doc.splitTextToSize(wordsText, wordsBoxWidth - 6), margin + 3, totalsBoxY + 18.5);
+  doc.setDrawColor(226, 232, 240);
+  doc.line(margin + 3, totalsBoxY + 13.8, margin + wordsBoxWidth - 3, totalsBoxY + 13.8);
 
-  // Financial Breakdown Box (Right 44%)
-  const financialBoxX = margin + wordsBoxWidth + 2;
-  const financialBoxWidth = printableWidth - wordsBoxWidth - 2;
-  doc.rect(financialBoxX, totalsBoxY, financialBoxWidth, totalsBoxHeight);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text("Amount in Words:", margin + 3, totalsBoxY + 17.5, { baseline: "middle" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  wrappedWords.forEach((line: string, idx: number) => {
+    doc.text(line, margin + 3, totalsBoxY + 22 + idx * 4.2, { baseline: "middle" });
+  });
+
+  // Right Box: Financial Breakdown
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(148, 163, 184);
+  doc.rect(financialBoxX, totalsBoxY, financialBoxWidth, totalsBoxHeight, "FD");
 
   const finLines: Array<{ label: string; val: string; bold?: boolean; alert?: boolean; highlight?: boolean }> = [
     { label: "Gross Amount:", val: `Rs. ${(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}` },
-    { label: "Discount / Tax:", val: `Rs. ${((Number(order.discount) || 0) > 0 ? `-${order.discount}` : "0.00")} / ${order.tax || 0}` },
+    { label: "Discount / Tax:", val: `Rs. ${(Number(order.discount) || 0) > 0 ? `-${order.discount}` : "0.00"} / ${order.tax || 0}` },
   ];
 
   if (prevPending > 0) {
@@ -515,7 +587,6 @@ function renderTotalsAndFooter(
     highlight: true,
   });
 
-  // ONLY show Paid and Pending Balance if pending amount was added / pending > 0
   if (pending > 0) {
     finLines.push({ label: "Paid / Received:", val: `Rs. ${paid.toLocaleString("en-PK", { minimumFractionDigits: 2 })}` });
     finLines.push({
@@ -526,509 +597,569 @@ function renderTotalsAndFooter(
     });
   }
 
-  const stepY = totalsBoxHeight / (finLines.length + 0.8);
-  let finY = totalsBoxY + stepY * 0.9;
+  const stepY = totalsBoxHeight / (finLines.length + 0.4);
+  let finY = totalsBoxY + stepY * 0.7;
   finLines.forEach((fl) => {
+    if (fl.highlight) {
+      doc.setDrawColor(203, 213, 225);
+      doc.line(financialBoxX + 2.5, finY - stepY * 0.45, financialBoxX + financialBoxWidth - 2.5, finY - stepY * 0.45);
+    }
     doc.setFont("helvetica", fl.bold ? "bold" : "normal");
-    doc.setFontSize(fl.highlight ? 7.2 : fl.bold ? 6.8 : 6.3);
+    doc.setFontSize(fl.highlight ? 10 : fl.bold ? 9 : 8.5);
     if (fl.alert) {
       doc.setTextColor(190, 20, 20);
     } else if (fl.highlight) {
       doc.setTextColor(15, 40, 120);
     } else if (fl.bold) {
-      doc.setTextColor(10, 30, 80);
+      doc.setTextColor(15, 23, 42);
     } else {
-      doc.setTextColor(50, 50, 50);
+      doc.setTextColor(51, 65, 85);
     }
-    doc.text(fl.label, financialBoxX + 2, finY);
-    doc.text(fl.val, financialBoxX + financialBoxWidth - 2, finY, { align: "right" });
+    doc.text(fl.label, financialBoxX + 3, finY, { baseline: "middle" });
+    doc.text(fl.val, financialBoxX + financialBoxWidth - 3, finY, { align: "right", baseline: "middle" });
     finY += stepY;
   });
 
-  // --- FOOTER SECTION ---
-  currentY = totalsBoxY + totalsBoxHeight + 2;
+  // --- FOOTER REMARKS & CENTERED 4-COLUMN SIGNATURE BAR ---
+  currentY = totalsBoxY + totalsBoxHeight + 3;
   const remarksText =
     settings.footerRemarks ||
     DEFAULT_SETTINGS.footerRemarks ||
     "All surgical items/stock must be checked immediately upon receipt of every supply. Any shortage, missing item, damaged item, or discrepancy must be reported immediately to the concerned person/supplier. Once the stock has been received and verified, any later claim regarding shortage or missing items may not be entertained.";
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.2);
-  const splitRemarks = doc.splitTextToSize(remarksText, printableWidth - 18);
-  const remarksLineCount = splitRemarks.length;
-  const remarksBlockHeight = Math.max(7, remarksLineCount * 2.8 + 2.5);
-  const footerBoxHeight = remarksBlockHeight + 7.5;
+  doc.setFontSize(8);
+  const splitRemarks = doc.splitTextToSize(remarksText, printableWidth - 22);
+  const remarksBlockHeight = Math.max(11, splitRemarks.length * 3.8 + 5);
+  const sigBarHeight = 14;
+  const footerBoxHeight = remarksBlockHeight + sigBarHeight;
 
-  doc.setDrawColor(180, 185, 195);
-  doc.setLineWidth(0.2);
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.25);
   doc.rect(margin, currentY, printableWidth, footerBoxHeight);
 
-  // Remarks heading & text
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.8);
-  doc.setTextColor(30, 40, 60);
-  doc.text("Remark:", margin + 2.5, currentY + 3.2);
+  doc.setFontSize(8.2);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Remark:", margin + 3, currentY + 4.5, { baseline: "middle" });
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.2);
-  doc.setTextColor(45, 55, 72);
-  doc.text(splitRemarks, margin + 14, currentY + 3.2);
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  splitRemarks.forEach((line: string, idx: number) => {
+    doc.text(line, margin + 19, currentY + 4.5 + idx * 3.8, { baseline: "middle" });
+  });
 
-  // Horizontal divider inside footer box
+  // Horizontal divider between remarks and 4-column personnel/signature bar
   const dividerY = currentY + remarksBlockHeight;
-  doc.setDrawColor(215, 222, 232);
+  doc.setDrawColor(203, 213, 225);
   doc.line(margin, dividerY, margin + printableWidth, dividerY);
 
-  // Personnel, Date & Time, Signature line
-  const line2Y = dividerY + 4.8;
+  // Evenly divided 4 centered columns across printableWidth (each 47.5mm)
+  const colW = printableWidth / 4;
+  const labelY = dividerY + 4.5;
+  const valY = dividerY + 9.8;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.8);
-  doc.setTextColor(40, 40, 40);
-  doc.text("Prepared By:", margin + 2.5, line2Y);
-  doc.setFont("helvetica", "normal");
-  doc.text(settings.preparedBy || "ADNAN", margin + 19, line2Y);
+  const sigCols = [
+    { title: "Prepared By", val: settings.preparedBy || "ADNAN" },
+    { title: "Printed By", val: settings.printedBy || "ADNAN" },
+    { title: "Date & Time", val: dtInfo.fullDateTime },
+    { title: "Authorized Signature", val: "____________________" },
+  ];
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Printed By:", margin + 44, line2Y);
-  doc.setFont("helvetica", "normal");
-  doc.text(settings.printedBy || "ADNAN", margin + 58, line2Y);
+  sigCols.forEach((sc, idx) => {
+    const colStart = margin + idx * colW;
+    const colCenter = colStart + colW / 2;
+    if (idx > 0) {
+      doc.setDrawColor(226, 232, 240);
+      doc.line(colStart, dividerY, colStart, dividerY + sigBarHeight);
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(sc.title, colCenter, labelY, { align: "center", baseline: "middle" });
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Date & Time:", margin + 83, line2Y);
-  doc.setFont("helvetica", "normal");
-  doc.text(dtInfo.fullDateTime, margin + 99, line2Y);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Authorized Signature: __________________", pageWidth - margin - 3, line2Y, { align: "right" });
-
-  // Page number footer
-  doc.setFontSize(6.8);
-  doc.setTextColor(120, 130, 145);
-  doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 3, 297 - 4, { align: "right" });
-  doc.text(`Generated on ${dtInfo.fullDateTime}`, margin + 3, 297 - 4);
+    doc.setFont("helvetica", idx === 3 ? "normal" : "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(sc.val, colCenter, valY, { align: "center", baseline: "middle" });
+  });
 }
 
 /**
- * 2. SIMPLE ORDER LIST TEMPLATE
+ * 2. SIMPLE ORDER LIST TEMPLATE (Centered & Enlarged Typography)
  */
 function renderSimpleListTemplate(doc: jsPDF, order: Order, settings: PharmacySettings) {
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 10;
-  const printableWidth = pageWidth - margin * 2;
+  const printableWidth = pageWidth - margin * 2; // 190mm
   const dtInfo = getFormattedDateTime(order.orderDate);
-
-  const PAGE1_MAX_ITEMS = 30;
-  const totalItems = order.items.length;
-  const page1Items = order.items.slice(0, PAGE1_MAX_ITEMS);
-  const remainingItems = order.items.slice(PAGE1_MAX_ITEMS);
+  const maxPageBottom = pageHeight - 13;
 
   let currentY = margin;
 
-  // Header
-  let titleX = margin;
+  // Centered Header
   if (settings.logoUrl) {
     try {
-      doc.addImage(settings.logoUrl, margin, currentY, 12, 12);
-      titleX = margin + 15;
+      const logoSize = 16;
+      doc.addImage(settings.logoUrl, (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
+      currentY += logoSize + 2.5;
     } catch (e) {
       console.warn("Could not embed logo in Simple List PDF", e);
     }
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(30, 41, 59);
-  doc.text(settings.pharmacyName || "AK Pharmacy", titleX, currentY + 4);
-
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
-  doc.text("PURCHASE ORDER SLIP", pageWidth - margin, currentY + 4, { align: "right" });
-
+  doc.setFontSize(17);
+  doc.setTextColor(15, 23, 42);
+  doc.text((settings.pharmacyName || "AK Pharmacy").toUpperCase(), pageWidth / 2, currentY + 3.5, {
+    align: "center",
+    baseline: "middle",
+  });
   currentY += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(
-    `Order #: ${order.orderNumber}  |  Date & Time: ${dtInfo.fullDateTime}  |  Customer: ${order.customerName}`,
-    margin,
-    currentY
-  );
 
-  currentY += 3;
-  doc.setDrawColor(226, 232, 240);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text("PURCHASE ORDER SLIP", pageWidth / 2, currentY, { align: "center", baseline: "middle" });
+  currentY += 5.5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+  const metaText = `Order #: ${order.orderNumber}   |   Date: ${dtInfo.fullDateTime}   |   Customer: ${
+    order.customerName || "Counter Sale"
+  }`;
+  const metaLines = doc.splitTextToSize(metaText, printableWidth - 6);
+  metaLines.forEach((ln: string) => {
+    doc.text(ln, pageWidth / 2, currentY, { align: "center", baseline: "middle" });
+    currentY += 4.4;
+  });
+
+  currentY += 1.5;
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.35);
   doc.line(margin, currentY, pageWidth - margin, currentY);
 
-  // Table
-  currentY += 3;
-  const colWidths = [10, 95, 25, 25, 35];
+  // Table (10 + 92 + 22 + 31 + 35 = 190mm)
+  currentY += 4;
+  const colWidths = [10, 92, 22, 31, 35];
   const headers = ["#", "Product Description", "Qty", "Rate (PKR)", "Total (PKR)"];
+  const headerH = 8;
+  const baseRowH = 6.8;
 
   const drawSimpleHeader = (y: number) => {
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, y, printableWidth, 5, "F");
+    doc.setFillColor(235, 240, 248);
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.25);
+    doc.rect(margin, y, printableWidth, headerH, "FD");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(51, 65, 85);
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
 
     let hX = margin;
     headers.forEach((h, i) => {
-      const align = i >= 2 ? "right" : i === 0 ? "center" : "left";
-      const tX = hX + (align === "center" ? colWidths[i] / 2 : align === "right" ? colWidths[i] - 2 : 2);
-      doc.text(h, tX, y + 3.6, { align });
+      const align = i >= 3 ? "right" : i === 0 || i === 2 ? "center" : "left";
+      const tX = hX + (align === "center" ? colWidths[i] / 2 : align === "right" ? colWidths[i] - 2.5 : 2.5);
+      doc.text(h, tX, y + headerH / 2, { align, baseline: "middle" });
       hX += colWidths[i];
+      if (hX < margin + printableWidth) {
+        doc.line(hX, y, hX, y + headerH);
+      }
     });
   };
 
   drawSimpleHeader(currentY);
-  currentY += 5;
+  currentY += headerH;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
+  let pageNum = 1;
+  order.items.forEach((item, index) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const wrappedProd = doc.splitTextToSize(String(item.productName || "Item"), colWidths[1] - 5);
+    const rowH = Math.max(baseRowH, wrappedProd.length * 4.4 + 2.6);
 
-  const simpleRowHeight = 4.6;
+    if (currentY + rowH > maxPageBottom - 10) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.8);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`--- CONTINUED ON PAGE ${pageNum + 1} ---`, pageWidth / 2, currentY + 5, {
+        align: "center",
+        baseline: "middle",
+      });
+      doc.addPage();
+      pageNum++;
+      currentY = margin + 2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(
+        `${(settings.pharmacyName || "AK Pharmacy").toUpperCase()} — Order #${order.orderNumber} (Pg ${pageNum})`,
+        pageWidth / 2,
+        currentY,
+        { align: "center", baseline: "middle" }
+      );
+      currentY += 6;
+      drawSimpleHeader(currentY);
+      currentY += headerH;
+    }
 
-  page1Items.forEach((item, index) => {
-    const isEven = index % 2 === 1;
-    if (isEven) {
+    doc.setDrawColor(180, 188, 200);
+    doc.setLineWidth(0.2);
+    if (index % 2 === 1) {
       doc.setFillColor(248, 250, 252);
-      doc.rect(margin, currentY, printableWidth, simpleRowHeight, "F");
+      doc.rect(margin, currentY, printableWidth, rowH, "FD");
+    } else {
+      doc.rect(margin, currentY, printableWidth, rowH);
     }
 
     let rX = margin;
-    const vals = [
+    const vals: Array<string | string[]> = [
       (index + 1).toString(),
-      item.productName,
+      wrappedProd,
       item.quantity.toString(),
       item.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
       item.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
     ];
 
+    doc.setTextColor(15, 23, 42);
+    const midY = currentY + rowH / 2;
     vals.forEach((v, i) => {
-      const align = i >= 2 ? "right" : i === 0 ? "center" : "left";
-      const tX = rX + (align === "center" ? colWidths[i] / 2 : align === "right" ? colWidths[i] - 2 : 2);
-      doc.text(v, tX, currentY + 3.4, { align });
-      rX += colWidths[i];
-    });
+      const align = i >= 3 ? "right" : i === 0 || i === 2 ? "center" : "left";
+      const tX = rX + (align === "center" ? colWidths[i] / 2 : align === "right" ? colWidths[i] - 2.5 : 2.5);
+      doc.setFont("helvetica", i === 4 ? "bold" : "normal");
+      doc.setFontSize(9);
 
-    currentY += simpleRowHeight;
-  });
-
-  // If more than 30 items, go to page 2
-  if (remainingItems.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(30, 64, 175);
-    doc.text(`--- CONTINUED ON PAGE 2 (Items 31 to ${totalItems}) ---`, pageWidth / 2, currentY + 5, { align: "center" });
-
-    doc.addPage();
-    currentY = margin + 2;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`${settings.pharmacyName || "AK Pharmacy"} - Order #${order.orderNumber} (Page 2)`, margin, currentY);
-    currentY += 5;
-
-    drawSimpleHeader(currentY);
-    currentY += 5;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-
-    remainingItems.forEach((item, index) => {
-      const isEven = index % 2 === 1;
-      if (isEven) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(margin, currentY, printableWidth, simpleRowHeight, "F");
+      if (Array.isArray(v)) {
+        const blockH = (v.length - 1) * 4.4;
+        const firstY = midY - blockH / 2;
+        v.forEach((ln, lIdx) => doc.text(ln, tX, firstY + lIdx * 4.4, { align, baseline: "middle" }));
+      } else {
+        doc.text(v, tX, midY, { align, baseline: "middle" });
       }
-
-      let rX = margin;
-      const vals = [
-        (PAGE1_MAX_ITEMS + index + 1).toString(),
-        item.productName,
-        item.quantity.toString(),
-        item.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
-        item.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 }),
-      ];
-
-      vals.forEach((v, i) => {
-        const align = i >= 2 ? "right" : i === 0 ? "center" : "left";
-        const tX = rX + (align === "center" ? colWidths[i] / 2 : align === "right" ? colWidths[i] - 2 : 2);
-        doc.text(v, tX, currentY + 3.4, { align });
-        rX += colWidths[i];
-      });
-
-      currentY += simpleRowHeight;
+      rX += colWidths[i];
+      if (rX < margin + printableWidth) {
+        doc.line(rX, currentY, rX, currentY + rowH);
+      }
     });
-  }
 
-  currentY += 3;
-  doc.setDrawColor(203, 213, 225);
-  doc.line(pageWidth - margin - 70, currentY, pageWidth - margin, currentY);
-
-  currentY += 3.5;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.text("Grand Total:", pageWidth - margin - 70, currentY);
-  doc.text(`Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`, pageWidth - margin, currentY, {
-    align: "right",
+    currentY += rowH;
   });
 
-  currentY += 4.5;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(convertRupeesToWords(order.grandTotal), margin, currentY);
-
-  currentY += 4.5;
   const remarksText =
     settings.footerRemarks ||
     DEFAULT_SETTINGS.footerRemarks ||
     "All surgical items/stock must be checked immediately upon receipt of every supply. Any shortage, missing item, damaged item, or discrepancy must be reported immediately to the concerned person/supplier. Once the stock has been received and verified, any later claim regarding shortage or missing items may not be entertained.";
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  const simpleRemarks = doc.splitTextToSize(remarksText, printableWidth - 22);
+  const summaryH = 26 + simpleRemarks.length * 4;
+
+  if (currentY + summaryH > maxPageBottom) {
+    doc.addPage();
+    currentY = margin + 4;
+  }
+
+  currentY += 4;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(148, 163, 184);
+  doc.rect(margin, currentY, printableWidth, 14, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.8);
-  doc.setTextColor(30, 40, 60);
-  doc.text("Remark:", margin, currentY);
+  doc.setFontSize(11);
+  doc.setTextColor(15, 40, 120);
+  doc.text(
+    `Grand Total:   Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    pageWidth / 2,
+    currentY + 5,
+    { align: "center", baseline: "middle" }
+  );
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.2);
-  doc.setTextColor(71, 85, 105);
-  const simpleRemarks = doc.splitTextToSize(remarksText, printableWidth - 14);
-  doc.text(simpleRemarks, margin + 12, currentY);
+  doc.setFontSize(8.8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(convertRupeesToWords(order.grandTotal), pageWidth / 2, currentY + 10.5, {
+    align: "center",
+    baseline: "middle",
+  });
 
-  currentY += Math.max(5, simpleRemarks.length * 2.8 + 2.5);
-  doc.setFontSize(6.8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Printed: ${dtInfo.fullDateTime}`, margin, currentY);
+  currentY += 18;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Remark:", margin, currentY, { baseline: "middle" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  doc.setTextColor(71, 85, 105);
+  simpleRemarks.forEach((ln: string, idx: number) => {
+    doc.text(ln, margin + 17, currentY + idx * 4, { baseline: "middle" });
+  });
+
+  stampInvoicePageNumbers(doc, margin, pageWidth, pageHeight, dtInfo.fullDateTime);
 }
 
 /**
- * 3. PROFESSIONAL PURCHASE ORDER TEMPLATE
+ * 3. PROFESSIONAL PURCHASE ORDER TEMPLATE (Centered & Enlarged Typography)
  */
 function renderProfessionalPoTemplate(doc: jsPDF, order: Order, settings: PharmacySettings) {
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 10;
-  const printableWidth = pageWidth - margin * 2;
+  const printableWidth = pageWidth - margin * 2; // 190mm
   const dtInfo = getFormattedDateTime(order.orderDate);
-
-  const PAGE1_MAX_ITEMS = 30;
-  const totalItems = order.items.length;
-  const page1Items = order.items.slice(0, PAGE1_MAX_ITEMS);
-  const remainingItems = order.items.slice(PAGE1_MAX_ITEMS);
+  const maxPageBottom = pageHeight - 13;
 
   let currentY = margin;
 
-  // Header Banner
+  // Centered Header Banner
+  const bannerH = settings.logoUrl ? 26 : 19;
   doc.setFillColor(15, 23, 42);
-  doc.rect(margin, currentY, printableWidth, 13, "F");
+  doc.rect(margin, currentY, printableWidth, bannerH, "F");
 
-  let poTitleX = margin + 3;
   if (settings.logoUrl) {
     try {
-      doc.addImage(settings.logoUrl, margin + 2, currentY + 1.5, 10, 10);
-      poTitleX = margin + 15;
+      const logoSize = 12;
+      doc.addImage(settings.logoUrl, (pageWidth - logoSize) / 2, currentY + 2, logoSize, logoSize);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text((settings.pharmacyName || "AK PHARMACY SUPPLIES").toUpperCase(), pageWidth / 2, currentY + 17.5, {
+        align: "center",
+        baseline: "middle",
+      });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(147, 197, 253);
+      doc.text("OFFICIAL PURCHASE ORDER", pageWidth / 2, currentY + 22.8, {
+        align: "center",
+        baseline: "middle",
+      });
     } catch (e) {
       console.warn("Could not embed logo in PO PDF", e);
     }
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(255, 255, 255);
+    doc.text((settings.pharmacyName || "AK PHARMACY SUPPLIES").toUpperCase(), pageWidth / 2, currentY + 7, {
+      align: "center",
+      baseline: "middle",
+    });
+    doc.setFontSize(10);
+    doc.setTextColor(147, 197, 253);
+    doc.text("OFFICIAL PURCHASE ORDER", pageWidth / 2, currentY + 13.5, {
+      align: "center",
+      baseline: "middle",
+    });
   }
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(255, 255, 255);
-  doc.text(settings.pharmacyName || "AK PHARMACY SUPPLIES", poTitleX, currentY + 5.5);
+  currentY += bannerH + 3.5;
 
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.text("Official Commercial Purchase Order & Supply Dispatch", poTitleX, currentY + 9.8);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("PURCHASE ORDER", pageWidth - margin - 3, currentY + 8, { align: "right" });
-
-  currentY += 15;
-
-  // Info Dual Box
-  const halfW = (printableWidth - 3) / 2;
-  const poInfoH = 17;
-  doc.setDrawColor(203, 213, 225);
+  // Info Dual Box (Balanced symmetric halves)
+  const halfW = (printableWidth - 4) / 2;
+  const poInfoH = 22;
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.25);
   doc.rect(margin, currentY, halfW, poInfoH);
-  doc.rect(margin + halfW + 3, currentY, halfW, poInfoH);
+  doc.rect(margin + halfW + 4, currentY, halfW, poInfoH);
 
   // Left Vendor/Issuer
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
+  doc.setFontSize(8.2);
   doc.setTextColor(100, 116, 139);
-  doc.text("ISSUED BY / PHARMACY", margin + 2, currentY + 3.8);
+  doc.text("ISSUED BY / PHARMACY", margin + 3, currentY + 4.5, { baseline: "middle" });
   doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8);
-  doc.text(settings.pharmacyName || "AK Pharmacy", margin + 2, currentY + 7.5);
+  doc.setFontSize(9.8);
+  doc.text(settings.pharmacyName || "AK Pharmacy", margin + 3, currentY + 9.5, { baseline: "middle" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(settings.address || "Sahiwal Estate, Arif Road", margin + 2, currentY + 11);
-  doc.text(`Tel: ${settings.phone || "040-4500933"}  |  Lic: ${settings.licenseNo || "02-367"}`, margin + 2, currentY + 14.5);
+  doc.setFontSize(8.5);
+  doc.text(settings.address || "Sahiwal Estate, Arif Road", margin + 3, currentY + 14, { baseline: "middle" });
+  doc.text(`Tel: ${settings.phone || "040-4500933"}  |  Lic: ${settings.licenseNo || "02-367"}`, margin + 3, currentY + 18.5, {
+    baseline: "middle",
+  });
 
   // Right Recipient
-  const rightBX = margin + halfW + 3;
+  const rightBX = margin + halfW + 4;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
+  doc.setFontSize(8.2);
   doc.setTextColor(100, 116, 139);
-  doc.text("PURCHASER / CLIENT", rightBX + 2, currentY + 3.8);
+  doc.text("PURCHASER / CLIENT", rightBX + 3, currentY + 4.5, { baseline: "middle" });
   doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8);
-  doc.text(order.customerName || "COUNTER SALE", rightBX + 2, currentY + 7.5);
+  doc.setFontSize(9.8);
+  doc.text(order.customerName || "COUNTER SALE", rightBX + 3, currentY + 9.5, { baseline: "middle" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(`PO Number: ${order.orderNumber}  |  Date: ${dtInfo.formattedDate}`, rightBX + 2, currentY + 11);
-  doc.text(`Sales Representative: ${order.salesman || "ADNAN"}`, rightBX + 2, currentY + 14.5);
+  doc.setFontSize(8.5);
+  doc.text(`PO Number: ${order.orderNumber}  |  Date: ${dtInfo.formattedDate}`, rightBX + 3, currentY + 14, {
+    baseline: "middle",
+  });
+  doc.text(`Sales Representative: ${order.salesman || "ADNAN"}`, rightBX + 3, currentY + 18.5, {
+    baseline: "middle",
+  });
 
-  currentY += poInfoH + 3;
+  currentY += poInfoH + 3.5;
 
-  // Items Table
+  // Items Table (10 + 90 + 22 + 34 + 34 = 190mm)
   const pCols = [
-    { label: "#", width: 8, align: "center" as const },
-    { label: "Product Description", width: 92, align: "left" as const },
+    { label: "#", width: 10, align: "center" as const },
+    { label: "Product Description", width: 90, align: "left" as const },
     { label: "Qty", width: 22, align: "center" as const },
     { label: "Unit Rate", width: 34, align: "right" as const },
     { label: "Line Total", width: 34, align: "right" as const },
   ];
 
+  const poHeaderH = 8;
+  const poBaseRowH = 6.8;
+
   const drawPoHeader = (y: number) => {
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, y, printableWidth, 5, "F");
+    doc.setFillColor(235, 240, 248);
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.25);
+    doc.rect(margin, y, printableWidth, poHeaderH, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(9);
     doc.setTextColor(15, 23, 42);
 
     let phX = margin;
     pCols.forEach((col) => {
-      let tX = phX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2 : 2);
-      doc.text(col.label, tX, y + 3.6, { align: col.align });
+      const tX = phX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2.5 : 2.5);
+      doc.text(col.label, tX, y + poHeaderH / 2, { align: col.align, baseline: "middle" });
       phX += col.width;
+      if (phX < margin + printableWidth) {
+        doc.line(phX, y, phX, y + poHeaderH);
+      }
     });
   };
 
   drawPoHeader(currentY);
-  currentY += 5;
+  currentY += poHeaderH;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  let poPage = 1;
+  order.items.forEach((item, index) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.8);
+    const wrappedName = doc.splitTextToSize(String(item.productName || "Item"), pCols[1].width - 5);
+    const rowH = Math.max(poBaseRowH, wrappedName.length * 4.4 + 2.6);
 
-  const poRowHeight = 4.5;
+    if (currentY + rowH > maxPageBottom - 10) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.8);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`--- CONTINUED ON PAGE ${poPage + 1} ---`, pageWidth / 2, currentY + 5, {
+        align: "center",
+        baseline: "middle",
+      });
+      doc.addPage();
+      poPage++;
+      currentY = margin + 2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(
+        `${(settings.pharmacyName || "AK PHARMACY SUPPLIES").toUpperCase()} — PO #${order.orderNumber} (Pg ${poPage})`,
+        pageWidth / 2,
+        currentY,
+        { align: "center", baseline: "middle" }
+      );
+      currentY += 6;
+      drawPoHeader(currentY);
+      currentY += poHeaderH;
+    }
 
-  page1Items.forEach((item, index) => {
-    const isEven = index % 2 === 1;
-    if (isEven) {
+    doc.setDrawColor(180, 188, 200);
+    doc.setLineWidth(0.2);
+    if (index % 2 === 1) {
       doc.setFillColor(248, 250, 252);
-      doc.rect(margin, currentY, printableWidth, poRowHeight, "F");
+      doc.rect(margin, currentY, printableWidth, rowH, "FD");
+    } else {
+      doc.rect(margin, currentY, printableWidth, rowH);
     }
 
     let prX = margin;
-    const pVals = [
+    const pVals: Array<string | string[]> = [
       (index + 1).toString(),
-      item.productName,
+      wrappedName,
       item.quantity.toString(),
       `Rs. ${item.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
       `Rs. ${item.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
     ];
 
+    doc.setTextColor(15, 23, 42);
+    const midY = currentY + rowH / 2;
     pVals.forEach((pv, idx) => {
       const col = pCols[idx];
-      let tX = prX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2 : 2);
-      doc.text(pv, tX, currentY + 3.3, { align: col.align });
+      const tX = prX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2.5 : 2.5);
+      doc.setFont("helvetica", idx === 4 ? "bold" : "normal");
+      doc.setFontSize(8.8);
+
+      if (Array.isArray(pv)) {
+        const blockH = (pv.length - 1) * 4.4;
+        const firstY = midY - blockH / 2;
+        pv.forEach((ln, lIdx) => doc.text(ln, tX, firstY + lIdx * 4.4, { align: col.align, baseline: "middle" }));
+      } else {
+        doc.text(pv, tX, midY, { align: col.align, baseline: "middle" });
+      }
       prX += col.width;
+      if (prX < margin + printableWidth) {
+        doc.line(prX, currentY, prX, currentY + rowH);
+      }
     });
 
-    currentY += poRowHeight;
+    currentY += rowH;
   });
 
-  if (remainingItems.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(30, 64, 175);
-    doc.text(`--- CONTINUED ON PAGE 2 (Items 31 to ${totalItems}) ---`, pageWidth / 2, currentY + 5, { align: "center" });
-
-    doc.addPage();
-    currentY = margin + 2;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${settings.pharmacyName || "AK PHARMACY SUPPLIES"} - PO #${order.orderNumber} (Page 2)`, margin, currentY);
-    currentY += 5;
-
-    drawPoHeader(currentY);
-    currentY += 5;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-
-    remainingItems.forEach((item, index) => {
-      const isEven = index % 2 === 1;
-      if (isEven) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(margin, currentY, printableWidth, poRowHeight, "F");
-      }
-
-      let prX = margin;
-      const pVals = [
-        (PAGE1_MAX_ITEMS + index + 1).toString(),
-        item.productName,
-        item.quantity.toString(),
-        `Rs. ${item.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
-        `Rs. ${item.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
-      ];
-
-      pVals.forEach((pv, idx) => {
-        const col = pCols[idx];
-        let tX = prX + (col.align === "center" ? col.width / 2 : col.align === "right" ? col.width - 2 : 2);
-        doc.text(pv, tX, currentY + 3.3, { align: col.align });
-        prX += col.width;
-      });
-
-      currentY += poRowHeight;
-    });
-  }
-
-  currentY += 4;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(
-    `TOTAL AMOUNT: Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
-    pageWidth - margin,
-    currentY,
-    { align: "right" }
-  );
-
-  currentY += 4.5;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(convertRupeesToWords(order.grandTotal), margin, currentY);
-
-  currentY += 4.5;
   const poRemarksText =
     settings.footerRemarks ||
     DEFAULT_SETTINGS.footerRemarks ||
     "All surgical items/stock must be checked immediately upon receipt of every supply. Any shortage, missing item, damaged item, or discrepancy must be reported immediately to the concerned person/supplier. Once the stock has been received and verified, any later claim regarding shortage or missing items may not be entertained.";
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  const poRemarks = doc.splitTextToSize(poRemarksText, printableWidth - 22);
+
+  if (currentY + 28 + poRemarks.length * 4 > maxPageBottom) {
+    doc.addPage();
+    currentY = margin + 4;
+  }
+
+  currentY += 4;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(148, 163, 184);
+  doc.rect(margin, currentY, printableWidth, 14, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.8);
-  doc.setTextColor(30, 40, 60);
-  doc.text("Remark:", margin, currentY);
+  doc.setFontSize(11);
+  doc.setTextColor(15, 40, 120);
+  doc.text(
+    `TOTAL AMOUNT:   Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    pageWidth / 2,
+    currentY + 5,
+    { align: "center", baseline: "middle" }
+  );
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.2);
-  doc.setTextColor(71, 85, 105);
-  const poRemarks = doc.splitTextToSize(poRemarksText, printableWidth - 14);
-  doc.text(poRemarks, margin + 12, currentY);
+  doc.setFontSize(8.8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(convertRupeesToWords(order.grandTotal), pageWidth / 2, currentY + 10.5, {
+    align: "center",
+    baseline: "middle",
+  });
 
-  currentY += Math.max(5, poRemarks.length * 2.8 + 2.5);
-  doc.setFontSize(6.8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Printed: ${dtInfo.fullDateTime}`, margin, currentY);
+  currentY += 18;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Remark:", margin, currentY, { baseline: "middle" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  doc.setTextColor(71, 85, 105);
+  poRemarks.forEach((ln: string, idx: number) => {
+    doc.text(ln, margin + 17, currentY + idx * 4, { baseline: "middle" });
+  });
+
+  stampInvoicePageNumbers(doc, margin, pageWidth, pageHeight, dtInfo.fullDateTime);
 }
 
 /**

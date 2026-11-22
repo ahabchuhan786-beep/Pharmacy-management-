@@ -184,17 +184,17 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex justify-center bg-slate-200/70">
           <div
             id="printable-a4-sheet"
-            className="bg-white text-slate-900 w-full max-w-[794px] min-h-[1050px] shadow-2xl p-6 sm:p-8 rounded-sm font-sans flex flex-col justify-between border border-slate-300"
-            style={{ fontSize: "12px", lineHeight: "1.4" }}
+            className="bg-white text-slate-900 w-full max-w-[794px] min-h-[1050px] shadow-2xl p-6 sm:p-8 rounded-sm font-sans flex flex-col justify-between border border-slate-300 mx-auto"
+            style={{ fontSize: "13.5px", lineHeight: "1.45" }}
           >
             {activeTemplate === "nafees_ak" && (
               /* NAFEES / AK PHARMACY INVOICE TEMPLATE */
               <div className="space-y-4">
-                {/* Header */}
-                <div className="border-b border-slate-800 pb-3">
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+                {/* Centered Header */}
+                <div className="border-b-2 border-slate-800 pb-3.5 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-center">
                     {settings.logoUrl && (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
+                      <div className="w-20 h-20 shrink-0 flex items-center justify-center mx-auto">
                         <img
                           src={settings.logoUrl}
                           alt="Pharmacy Logo"
@@ -202,22 +202,22 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         />
                       </div>
                     )}
-                    <div>
-                      <h1 className="text-xl sm:text-2xl font-black tracking-wide text-slate-900 uppercase">
+                    <div className="text-center">
+                      <h1 className="text-2xl sm:text-3xl font-black tracking-wide text-slate-900 uppercase">
                         {settings.pharmacyName || "AK PHARMACY"}
                       </h1>
-                      <p className="text-xs text-slate-600 font-medium mt-0.5">
+                      <p className="text-sm text-slate-700 font-medium mt-0.5">
                         {settings.address || "16, Sahiwal Estate, Arif Road, Sahiwal"}
                       </p>
-                      <p className="text-xs text-slate-600 mt-0.5">
+                      <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
                         Phone: <span className="font-semibold">{settings.phone}</span> | Lic. No:{" "}
                         <span className="font-mono font-semibold">{settings.licenseNo}</span> | NTN #:{" "}
                         <span className="font-mono font-semibold">{settings.ntn}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="mt-2 text-center">
-                    <span className="inline-block px-4 py-0.5 bg-slate-100 font-bold text-xs border border-slate-300 rounded uppercase tracking-wider">
+                  <div className="mt-3 text-center">
+                    <span className="inline-block px-5 py-1 bg-slate-100 font-bold text-sm border border-slate-300 rounded uppercase tracking-wider">
                       SALE ORDER / INVOICE
                     </span>
                   </div>
@@ -278,18 +278,18 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
                 {/* Items Table */}
                 <div className="overflow-x-auto border border-slate-300 rounded">
-                  <table className="w-full text-left text-[11px] divide-y divide-slate-300">
+                  <table className="w-full text-left text-[13px] divide-y divide-slate-300">
                     <thead className="bg-slate-100 font-bold text-slate-800 select-none">
                       <tr>
-                        <th className="p-1.5 text-center border-r border-slate-300 w-7">#</th>
-                        <th className="p-1.5 border-r border-slate-300">Item Description</th>
-                        <th className="p-1.5 text-center border-r border-slate-300 w-14">Batch</th>
-                        <th className="p-1.5 text-right border-r border-slate-300 w-18">Rate</th>
-                        <th className="p-1.5 text-center border-r border-slate-300 w-12">Qty</th>
-                        <th className="p-1.5 text-center border-r border-slate-300 w-10">Bon</th>
-                        <th className="p-1.5 text-right border-r border-slate-300 w-18">Gross</th>
-                        <th className="p-1.5 text-right border-r border-slate-300 w-14">Disc %</th>
-                        <th className="p-1.5 text-right w-22">Net Amt</th>
+                        <th className="p-2 text-center border-r border-slate-300 w-9 align-middle">#</th>
+                        <th className="p-2 border-r border-slate-300 align-middle">Item Description</th>
+                        <th className="p-2 text-center border-r border-slate-300 w-16 align-middle">Batch</th>
+                        <th className="p-2 text-right border-r border-slate-300 w-20 align-middle">Rate</th>
+                        <th className="p-2 text-center border-r border-slate-300 w-14 align-middle">Qty</th>
+                        <th className="p-2 text-center border-r border-slate-300 w-12 align-middle">Bon</th>
+                        <th className="p-2 text-right border-r border-slate-300 w-20 align-middle">Gross</th>
+                        <th className="p-2 text-right border-r border-slate-300 w-16 align-middle">Disc %</th>
+                        <th className="p-2 text-right w-24 align-middle">Net Amt</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
@@ -299,31 +299,31 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         const discPercent = it.disc2 || it.disc1 || 0;
                         return (
                           <tr key={it.id || idx} className={idx % 2 === 1 ? "bg-slate-50/50" : ""}>
-                            <td className="p-1 text-center font-mono text-slate-500 border-r border-slate-200">
+                            <td className="p-2 text-center font-mono text-slate-500 border-r border-slate-200 align-middle">
                               {idx + 1}
                             </td>
-                            <td className="p-1 font-semibold text-slate-900 border-r border-slate-200">
+                            <td className="p-2 font-semibold text-slate-900 border-r border-slate-200 align-middle">
                               {it.productName}
                             </td>
-                            <td className="p-1 text-center font-mono text-slate-500 border-r border-slate-200">
+                            <td className="p-2 text-center font-mono text-slate-500 border-r border-slate-200 align-middle">
                               {it.batch || "-"}
                             </td>
-                            <td className="p-1 text-right font-mono text-slate-800 border-r border-slate-200">
+                            <td className="p-2 text-right font-mono text-slate-800 border-r border-slate-200 align-middle">
                               {it.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="p-1 text-center font-bold text-slate-900 border-r border-slate-200">
+                            <td className="p-2 text-center font-bold text-slate-900 border-r border-slate-200 align-middle">
                               {it.quantity}
                             </td>
-                            <td className="p-1 text-center font-mono text-slate-500 border-r border-slate-200">
+                            <td className="p-2 text-center font-mono text-slate-500 border-r border-slate-200 align-middle">
                               {it.bon || 0}
                             </td>
-                            <td className="p-1 text-right font-mono text-slate-800 border-r border-slate-200">
+                            <td className="p-2 text-right font-mono text-slate-800 border-r border-slate-200 align-middle">
                               {gross.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="p-1 text-right font-mono text-slate-500 border-r border-slate-200">
+                            <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-200 align-middle">
                               {discPercent > 0 ? discPercent.toFixed(2) : "0.00"}
                             </td>
-                            <td className="p-1 text-right font-mono font-bold text-slate-900">
+                            <td className="p-2 text-right font-mono font-bold text-slate-900 align-middle">
                               {net.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                             </td>
                           </tr>
@@ -439,30 +439,31 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 </div>
 
                 {/* Footer Section */}
-                <div className="border border-slate-300 rounded p-3 text-xs space-y-2.5 bg-white">
+                <div className="border border-slate-300 rounded p-3 text-xs sm:text-[13px] space-y-3 bg-white">
                   <div className="bg-slate-50 border border-slate-200 rounded p-2.5">
                     <span className="font-bold text-slate-800 block sm:inline">Remark: </span>
-                    <span className="text-slate-700 text-[11px] leading-relaxed">
+                    <span className="text-slate-700 leading-relaxed">
                       {settings.footerRemarks ||
                         "All surgical items/stock must be checked immediately upon receipt of every supply. Any shortage, missing item, damaged item, or discrepancy must be reported immediately to the concerned person/supplier. Once the stock has been received and verified, any later claim regarding shortage or missing items may not be entertained."}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1.5 border-t border-slate-200 text-[11px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-200 text-center">
                     <div>
-                      <span className="font-bold text-slate-700">Prepared By: </span>
-                      <span>{settings.preparedBy || "ADNAN"}</span>
+                      <span className="font-bold text-slate-600 block text-[11px] uppercase">Prepared By</span>
+                      <span className="font-semibold text-slate-900">{settings.preparedBy || "ADNAN"}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-slate-700">Printed By: </span>
-                      <span>{settings.printedBy || "ADNAN"}</span>
+                      <span className="font-bold text-slate-600 block text-[11px] uppercase">Printed By</span>
+                      <span className="font-semibold text-slate-900">{settings.printedBy || "ADNAN"}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-slate-700">Date & Time: </span>
-                      <span>{new Date().toLocaleDateString("en-GB")} {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="font-bold text-slate-600 block text-[11px] uppercase">Date &amp; Time</span>
+                      <span className="font-semibold text-slate-900">{new Date().toLocaleDateString("en-GB")} {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <div className="text-right font-medium text-slate-600">
-                      Authorized Signature: _____________________
+                    <div>
+                      <span className="font-bold text-slate-600 block text-[11px] uppercase">Authorized Signature</span>
+                      <span className="text-slate-700">__________________</span>
                     </div>
                   </div>
                 </div>
@@ -472,55 +473,45 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
             {activeTemplate === "simple_list" && (
               /* SIMPLE ORDER LIST TEMPLATE */
               <div className="space-y-4">
-                <div className="flex justify-between items-start border-b border-slate-300 pb-3">
-                  <div className="flex items-center gap-3">
-                    {settings.logoUrl && (
-                      <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-                        <img
-                          src={settings.logoUrl}
-                          alt="Pharmacy Logo"
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <h1 className="text-xl font-bold text-slate-900">{settings.pharmacyName}</h1>
-                      <p className="text-xs text-slate-500">Order #{order.orderNumber}</p>
+                <div className="flex flex-col items-center text-center border-b border-slate-300 pb-3.5 gap-1.5">
+                  {settings.logoUrl && (
+                    <div className="w-16 h-16 shrink-0 flex items-center justify-center mx-auto">
+                      <img
+                        src={settings.logoUrl}
+                        alt="Pharmacy Logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="px-2.5 py-1 bg-slate-100 rounded text-xs font-bold uppercase">
-                      Purchase Order Slip
-                    </span>
-                    <p className="text-xs text-slate-500 mt-1">{order.orderDate}</p>
-                  </div>
+                  )}
+                  <h1 className="text-2xl font-bold text-slate-900 uppercase">{settings.pharmacyName}</h1>
+                  <span className="px-3 py-0.5 bg-slate-100 rounded text-xs font-bold uppercase border border-slate-300">
+                    Purchase Order Slip
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-600">
+                    Order #{order.orderNumber} &bull; Date: {order.orderDate} &bull; Customer: {order.customerName}
+                  </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs">
-                  <span className="font-bold">Customer: </span>
-                  <span>{order.customerName}</span>
-                </div>
-
-                <table className="w-full text-left text-xs divide-y divide-slate-200">
+                <table className="w-full text-left text-[13px] divide-y divide-slate-200 border border-slate-200 rounded">
                   <thead className="bg-slate-100 font-bold">
                     <tr>
-                      <th className="p-2 w-8 text-center">#</th>
-                      <th className="p-2">Item</th>
-                      <th className="p-2 text-center w-16">Qty</th>
-                      <th className="p-2 text-right w-24">Rate</th>
-                      <th className="p-2 text-right w-28">Amount</th>
+                      <th className="p-2.5 w-10 text-center align-middle">#</th>
+                      <th className="p-2.5 align-middle">Product Description</th>
+                      <th className="p-2.5 text-center w-16 align-middle">Qty</th>
+                      <th className="p-2.5 text-right w-28 align-middle">Rate</th>
+                      <th className="p-2.5 text-right w-32 align-middle">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {order.items.map((it, i) => (
                       <tr key={it.id || i}>
-                        <td className="p-2 text-center text-slate-400">{i + 1}</td>
-                        <td className="p-2 font-medium">{it.productName}</td>
-                        <td className="p-2 text-center font-bold">{it.quantity}</td>
-                        <td className="p-2 text-right font-mono">
+                        <td className="p-2.5 text-center text-slate-500 align-middle">{i + 1}</td>
+                        <td className="p-2.5 font-medium align-middle">{it.productName}</td>
+                        <td className="p-2.5 text-center font-bold align-middle">{it.quantity}</td>
+                        <td className="p-2.5 text-right font-mono align-middle">
                           Rs. {it.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-2 text-right font-mono font-bold">
+                        <td className="p-2.5 text-right font-mono font-bold align-middle">
                           Rs. {it.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
@@ -528,12 +519,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   </tbody>
                 </table>
 
-                <div className="text-right p-3 bg-slate-50 rounded border border-slate-200">
-                  <div className="text-xs text-slate-500">Grand Total:</div>
-                  <div className="text-xl font-bold font-mono text-blue-800">
+                <div className="text-center p-4 bg-slate-50 rounded border border-slate-200">
+                  <div className="text-xs font-bold uppercase text-slate-500">Grand Total</div>
+                  <div className="text-2xl font-bold font-mono text-blue-800 mt-0.5">
                     Rs. {order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs font-serif italic text-slate-600 mt-1">
+                  <div className="text-sm font-serif italic text-slate-600 mt-1">
                     {convertRupeesToWords(order.grandTotal)}
                   </div>
                 </div>
@@ -543,63 +534,57 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
             {activeTemplate === "professional_po" && (
               /* FORMAL PURCHASE ORDER TEMPLATE */
               <div className="space-y-4">
-                <div className="bg-[#1e293b] text-white p-4 rounded flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    {settings.logoUrl && (
-                      <div className="w-10 h-10 rounded bg-white p-0.5 shrink-0 flex items-center justify-center">
-                        <img
-                          src={settings.logoUrl}
-                          alt="Pharmacy Logo"
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <h1 className="text-lg font-bold">{settings.pharmacyName}</h1>
-                      <p className="text-xs text-slate-400">Official Commercial Order</p>
+                <div className="bg-[#1e293b] text-white p-4 rounded flex flex-col items-center text-center gap-1.5">
+                  {settings.logoUrl && (
+                    <div className="w-14 h-14 rounded bg-white p-1 shrink-0 flex items-center justify-center mx-auto">
+                      <img
+                        src={settings.logoUrl}
+                        alt="Pharmacy Logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-blue-400">PURCHASE ORDER</div>
-                    <div className="text-xs text-slate-300">{order.orderNumber}</div>
+                  )}
+                  <h1 className="text-xl font-bold uppercase">{settings.pharmacyName}</h1>
+                  <div className="text-xs font-bold text-blue-300 tracking-wider uppercase">
+                    Official Purchase Order &bull; {order.orderNumber}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                   <div className="p-3 border border-slate-200 rounded">
-                    <div className="font-bold text-slate-500 mb-1">SUPPLIER / ISSUER</div>
+                    <div className="font-bold text-slate-500 text-xs mb-1">SUPPLIER / ISSUER</div>
                     <div className="font-bold text-slate-900">{settings.pharmacyName}</div>
                     <div>{settings.address}</div>
                     <div>{settings.phone}</div>
                   </div>
                   <div className="p-3 border border-slate-200 rounded">
-                    <div className="font-bold text-slate-500 mb-1">PURCHASER / PHARMACY</div>
+                    <div className="font-bold text-slate-500 text-xs mb-1">PURCHASER / PHARMACY</div>
                     <div className="font-bold text-slate-900">{order.customerName}</div>
                     <div>Date: {order.orderDate}</div>
                     <div>Sales Representative: {order.salesman}</div>
                   </div>
                 </div>
 
-                <table className="w-full text-left text-xs divide-y divide-slate-200 border border-slate-200 rounded">
+                <table className="w-full text-left text-[13px] divide-y divide-slate-200 border border-slate-200 rounded">
                   <thead className="bg-slate-100 font-bold">
                     <tr>
-                      <th className="p-2 w-8 text-center">#</th>
-                      <th className="p-2">Description</th>
-                      <th className="p-2 text-center w-20">Quantity</th>
-                      <th className="p-2 text-right w-24">Unit Rate</th>
-                      <th className="p-2 text-right w-28">Total</th>
+                      <th className="p-2.5 w-10 text-center align-middle">#</th>
+                      <th className="p-2.5 align-middle">Description</th>
+                      <th className="p-2.5 text-center w-20 align-middle">Quantity</th>
+                      <th className="p-2.5 text-right w-28 align-middle">Unit Rate</th>
+                      <th className="p-2.5 text-right w-32 align-middle">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {order.items.map((it, i) => (
                       <tr key={it.id || i}>
-                        <td className="p-2 text-center text-slate-400">{i + 1}</td>
-                        <td className="p-2 font-medium">{it.productName}</td>
-                        <td className="p-2 text-center font-bold">{it.quantity}</td>
-                        <td className="p-2 text-right font-mono">
+                        <td className="p-2.5 text-center text-slate-500 align-middle">{i + 1}</td>
+                        <td className="p-2.5 font-medium align-middle">{it.productName}</td>
+                        <td className="p-2.5 text-center font-bold align-middle">{it.quantity}</td>
+                        <td className="p-2.5 text-right font-mono align-middle">
                           Rs. {it.rate.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-2 text-right font-mono font-bold">
+                        <td className="p-2.5 text-right font-mono font-bold align-middle">
                           Rs. {it.amount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
@@ -607,15 +592,13 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   </tbody>
                 </table>
 
-                <div className="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-200">
-                  <div className="text-xs font-serif italic text-slate-700">
-                    {convertRupeesToWords(order.grandTotal)}
+                <div className="text-center p-4 bg-slate-50 rounded border border-slate-200">
+                  <div className="text-xs font-bold uppercase text-slate-500">Total Amount</div>
+                  <div className="text-2xl font-bold font-mono text-slate-900 mt-0.5">
+                    Rs. {order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs font-bold text-slate-500 mr-2">TOTAL AMOUNT:</span>
-                    <span className="text-lg font-bold font-mono text-slate-900">
-                      Rs. {order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
-                    </span>
+                  <div className="text-sm font-serif italic text-slate-700 mt-1">
+                    {convertRupeesToWords(order.grandTotal)}
                   </div>
                 </div>
               </div>
