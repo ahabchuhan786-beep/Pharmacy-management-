@@ -1,4 +1,7 @@
 import { jsPDF } from "jspdf";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { Order, PharmacySettings, Product, PriceListVersion, StockSummaryItem, Quotation, RecoveryRecord } from "../types";
 import { DEFAULT_SETTINGS } from "../data/defaultData";
 import { convertRupeesToWords } from "./numberToWords";
@@ -1342,8 +1345,8 @@ export function generateQuotationPdf(
   doc.setTextColor(isPurchaseRate ? 146 : 6, isPurchaseRate ? 64 : 95, isPurchaseRate ? 14 : 70);
   doc.text(
     isPurchaseRate
-      ? "★ RATE BASIS: PURCHASE / COST RATE QUOTATION (خریداری ریٹ نرخ نامہ)"
-      : "★ RATE BASIS: STANDARD SELLING RATE QUOTATION (فروخت ریٹ نرخ نامہ)",
+      ? "* RATE BASIS: PURCHASE / COST RATE QUOTATION"
+      : "* RATE BASIS: STANDARD SELLING RATE QUOTATION",
     margin + 4,
     y + 4.8
   );
@@ -1367,7 +1370,7 @@ export function generateQuotationPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
-  doc.text("QUOTATION PREPARED FOR (مشتری / ادارہ):", margin + 3.5, y + 4.5);
+  doc.text("QUOTATION PREPARED FOR:", margin + 3.5, y + 4.5);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -1988,14 +1991,72 @@ function generateCompactRecoverySlipPdf(
   return doc;
 }
 
-/**
- * Safely triggers download of a jsPDF document with multi-environment fallbacks
- * (works reliably in sandboxed iframes, mobile Chrome, Safari, Android WebAPK, etc.)
- */
-export function downloadPdfSafely(doc: jsPDF, filename: string): boolean {
+function sanitizeExportFilename(filename: string): string {
+  const cleaned = filename.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "");
+  return cleaned || `PharmaFlow_${Date.now()}`;
+}
+
+async function saveAndShareNativeBase64(base64Data: string, safeName: string): Promise<boolean> {
+  let savedToDocuments = false;
   try {
-    // Attempt standard jsPDF save first
-    doc.save(filename);
+    await Filesystem.writeFile({
+      path: `PharmaFlow/${safeName}`,
+      data: base64Data,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+    savedToDocuments = true;
+  } catch (docErr) {
+    console.warn("Could not write to Documents/PharmaFlow, continuing with Cache share:", docErr);
+  }
+
+  await Filesystem.writeFile({
+    path: safeName,
+    data: base64Data,
+    directory: Directory.Cache,
+    recursive: true,
+  });
+
+  const { uri } = await Filesystem.getUri({
+    directory: Directory.Cache,
+    path: safeName,
+  });
+
+  try {
+    await Share.share({
+      title: safeName,
+      files: [uri],
+      dialogTitle: "Save or Share File",
+    });
+    return true;
+  } catch (shareErr) {
+    const msg = shareErr instanceof Error ? shareErr.message : String(shareErr);
+    if (savedToDocuments || /cancel/i.test(msg)) {
+      return true;
+    }
+    throw shareErr;
+  }
+}
+
+/**
+ * Safely triggers download of a jsPDF document on Web and Capacitor Android APKs
+ */
+export async function downloadPdfSafely(doc: jsPDF, filename: string): Promise<boolean> {
+  const safeName = sanitizeExportFilename(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const dataUri = doc.output("datauristring");
+      const base64 = dataUri.includes(",") ? dataUri.split(",")[1] : dataUri;
+      return await saveAndShareNativeBase64(base64, safeName);
+    } catch (nativeErr) {
+      console.error("Native Capacitor PDF export failed:", nativeErr);
+      return false;
+    }
+  }
+
+  try {
+    doc.save(safeName);
     return true;
   } catch (err) {
     console.warn("doc.save() direct call failed, triggering Blob URL fallback:", err);
@@ -2004,7 +2065,7 @@ export function downloadPdfSafely(doc: jsPDF, filename: string): boolean {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename;
+      link.download = safeName;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       document.body.appendChild(link);
@@ -2020,6 +2081,132 @@ export function downloadPdfSafely(doc: jsPDF, filename: string): boolean {
       console.error("All PDF download mechanisms failed:", fallbackErr);
       return false;
     }
+  }
+}
+
+/**
+ * Safely exports UTF-8 text files (CSV / JSON) on both Web browsers and Capacitor Android APKs
+ */
+export async function downloadTextFileSafely(
+  content: string,
+  filename: string,
+  mimeType = "text/plain;charset=utf-8"
+): Promise<boolean> {
+  const safeName = sanitizeExportFilename(filename);
+
+  if (Capacitor.isNativePlatform()) {
+    let savedToDocuments = false;
+    try {
+      await Filesystem.writeFile({
+        path: `PharmaFlow/${safeName}`,
+        data: content,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+      savedToDocuments = true;
+    } catch (docErr) {
+      console.warn("Could not write text file to Documents/PharmaFlow:", docErr);
+    }
+
+    try {
+      await Filesystem.writeFile({
+        path: safeName,
+        data: content,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+
+      const { uri } = await Filesystem.getUri({
+        directory: Directory.Cache,
+        path: safeName,
+      });
+
+      try {
+        await Share.share({
+          title: safeName,
+          files: [uri],
+          dialogTitle: "Save or Share File",
+        });
+        return true;
+      } catch (shareErr) {
+        const msg = shareErr instanceof Error ? shareErr.message : String(shareErr);
+        if (savedToDocuments || /cancel/i.test(msg)) {
+          return true;
+        }
+        throw shareErr;
+      }
+    } catch (nativeErr) {
+      console.error("Native Capacitor text export failed:", nativeErr);
+      return false;
+    }
+  }
+
+  try {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = safeName;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(url);
+    }, 1000);
+    return true;
+  } catch (err) {
+    console.error("Text file download failed:", err);
+    return false;
+  }
+}
+
+/**
+ * Safely exports base64 binary files (e.g., XLSX spreadsheets) on Web and Capacitor Android APKs
+ */
+export async function downloadBinaryBase64Safely(
+  base64Data: string,
+  filename: string,
+  mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+): Promise<boolean> {
+  const safeName = sanitizeExportFilename(filename);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      return await saveAndShareNativeBase64(base64Data, safeName);
+    } catch (nativeErr) {
+      console.error("Native Capacitor binary export failed:", nativeErr);
+      return false;
+    }
+  }
+
+  try {
+    const byteChars = atob(base64Data);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) {
+      byteNumbers[i] = byteChars.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = safeName;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(url);
+    }, 1000);
+    return true;
+  } catch (err) {
+    console.error("Binary file download failed:", err);
+    return false;
   }
 }
 

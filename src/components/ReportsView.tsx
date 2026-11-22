@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "../context/AppContext";
 import { ReportTimeframe } from "../types";
+import { downloadTextFileSafely } from "../utils/pdfGenerator";
 import {
   BarChart3,
   TrendingUp,
@@ -263,12 +264,12 @@ export const ReportsView: React.FC = () => {
       productCode: string;
       category: string;
       unitsSold: number;
-      unitCost: number; // Purchase Rate (کتنے کی پراڈکٹ تھی)
-      avgSaleRate: number; // Average Sale Rate (کتنے میں بیچی)
-      totalCost: number; // Total Purchase Cost of sold units (کتنے کی پراڈکٹس تھیں)
-      totalRevenue: number; // Total Sale Revenue (کتنے میں فروخت ہوئیں)
-      profit: number; // Profit in Rupees (کتنے پیسے منافع ہوا)
-      marginPct: number; // Margin % (کتنے فیصد منافع ہوا)
+      unitCost: number; // Purchase Rate
+      avgSaleRate: number; // Average Sale Rate
+      totalCost: number; // Total Purchase Cost of sold units
+      totalRevenue: number; // Total Sale Revenue
+      profit: number; // Profit in Rupees
+      marginPct: number; // Margin %
       profitStatus: "High Profit" | "Normal" | "Low Margin" | "Loss";
     }> = [];
 
@@ -582,7 +583,7 @@ export const ReportsView: React.FC = () => {
   const PIE_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4", "#64748b"];
 
   // Export to CSV Functionality
-  const handleExportProfitCsv = () => {
+  const handleExportProfitCsv = async () => {
     const headers = [
       "Product Code",
       "Product Name",
@@ -611,19 +612,15 @@ export const ReportsView: React.FC = () => {
       `"${p.profitStatus}"`,
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AK_Pharmacy_Sales_Profit_Report_${timeframe}_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvText = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    await downloadTextFileSafely(
+      csvText,
+      `PharmaFlow_Sales_Profit_Report_${timeframe}_${todayStr}.csv`,
+      "text/csv;charset=utf-8;"
+    );
   };
 
-  const handleExportStockCsv = () => {
+  const handleExportStockCsv = async () => {
     const headers = [
       "Product Code",
       "Product Name",
@@ -656,19 +653,15 @@ export const ReportsView: React.FC = () => {
       `"${s.status}"`,
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AK_Pharmacy_Stock_Inventory_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvText = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    await downloadTextFileSafely(
+      csvText,
+      `PharmaFlow_Stock_Inventory_${todayStr}.csv`,
+      "text/csv;charset=utf-8;"
+    );
   };
 
-  const handleExportDailyCsv = () => {
+  const handleExportDailyCsv = async () => {
     const headers = [
       "Date",
       "Orders Count",
@@ -697,16 +690,12 @@ export const ReportsView: React.FC = () => {
       d.grossProfit - d.expensesAmount,
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AK_Pharmacy_Daily_Date_Report_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvText = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    await downloadTextFileSafely(
+      csvText,
+      `PharmaFlow_Daily_Date_Report_${todayStr}.csv`,
+      "text/csv;charset=utf-8;"
+    );
   };
 
   const handlePrint = () => {
@@ -737,7 +726,7 @@ export const ReportsView: React.FC = () => {
                 Sales, Purchase &amp; Profit Analytics
               </h2>
               <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                خرید و فروخت منافع رپورٹ
+                Profit &amp; Margin Report
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -803,7 +792,7 @@ export const ReportsView: React.FC = () => {
       <div className="bg-emerald-50/50 border border-emerald-200 p-4 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 flex-wrap">
           <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
-          <span className="font-bold text-slate-800">Report Date Range (تاریخ کے مطابق رپورٹ):</span>
+          <span className="font-bold text-slate-800">Report Date Range:</span>
           <span className="px-2.5 py-0.5 bg-white border border-emerald-300 text-emerald-800 rounded-md font-mono font-bold">
             {effectiveDateRange.label}
           </span>
@@ -867,7 +856,7 @@ export const ReportsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary Financial Equation Banner (کتنے کی پراڈکٹس تھیں، کتنے میں بکیں، کتنا منافع ہوا) */}
+      {/* Primary Financial Equation Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-5 rounded-2xl shadow-sm border border-slate-700/60">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4 mb-4">
           <div>
@@ -876,7 +865,7 @@ export const ReportsView: React.FC = () => {
               Realized Sale &amp; Purchase Profit Equation ({effectiveDateRange.label})
             </span>
             <h3 className="text-lg font-bold text-white mt-0.5">
-              خرید و فروخت کے بعد حاصل شدہ مجموعی منافع کا حساب
+              Sales Revenue, Cost of Goods &amp; Net Profit Summary
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -892,7 +881,7 @@ export const ReportsView: React.FC = () => {
           <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl">
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
               <span>1. Total Sale Revenue</span>
-              <span className="text-blue-300 font-urdu">کل فروخت</span>
+              <span className="text-blue-300 font-semibold">Sales</span>
             </div>
             <div className="text-xl font-black font-mono text-white mt-1">
               Rs. {totalSalesAmount.toLocaleString()}
@@ -911,7 +900,7 @@ export const ReportsView: React.FC = () => {
           <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl">
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
               <span>2. Product Purchase Cost</span>
-              <span className="text-amber-300 font-urdu">کتنے کی پراڈکٹس تھیں</span>
+              <span className="text-amber-300 font-semibold">Cost</span>
             </div>
             <div className="text-xl font-black font-mono text-amber-300 mt-1">
               Rs. {totalSoldProductsCost.toLocaleString()}
@@ -925,7 +914,7 @@ export const ReportsView: React.FC = () => {
           <div className="bg-emerald-500/10 border border-emerald-400/30 p-3.5 rounded-xl">
             <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold">
               <span>3. Gross Sales Profit</span>
-              <span className="text-emerald-200 font-urdu">کتنے پیسے منافع ہوا</span>
+              <span className="text-emerald-200 font-semibold">Gross</span>
             </div>
             <div className="text-xl font-black font-mono text-emerald-400 mt-1">
               Rs. {totalSalesGrossProfit.toLocaleString()}
@@ -939,7 +928,7 @@ export const ReportsView: React.FC = () => {
           <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl">
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
               <span>4. Net Business Profit</span>
-              <span className="text-purple-300 font-urdu">اخراجات نکال کر بچت</span>
+              <span className="text-purple-300 font-semibold">Net</span>
             </div>
             <div className={`text-xl font-black font-mono mt-1 ${netBusinessProfit >= 0 ? "text-white" : "text-rose-400"}`}>
               Rs. {netBusinessProfit.toLocaleString()}
@@ -986,7 +975,7 @@ export const ReportsView: React.FC = () => {
             {settings.currencySymbol} {totalSoldProductsCost.toLocaleString()}
           </p>
           <div className="flex items-center justify-between text-[11px] text-amber-700 mt-1 font-medium">
-            <span>خرید لاگت</span>
+            <span>Purchase Cost</span>
             <span>COGS</span>
           </div>
         </div>
@@ -1006,7 +995,7 @@ export const ReportsView: React.FC = () => {
           </p>
           <div className="flex items-center justify-between text-[11px] text-emerald-700 mt-1 font-bold">
             <span>{overallSalesMarginPct.toFixed(1)}% Margin</span>
-            <span className="font-urdu">منافع</span>
+            <span>Profit</span>
           </div>
         </div>
 
@@ -1338,7 +1327,7 @@ export const ReportsView: React.FC = () => {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {activeLedgerTab === "profit"
-                ? `پراڈکٹس کتنے کی تھیں، کتنے میں فروخت ہوئیں، اور خرید و فروخت کے بعد کتنا منافع ہوا (${effectiveDateRange.label})`
+                ? `Itemized product purchase cost, sale revenue, and net profit earned (${effectiveDateRange.label})`
                 : activeLedgerTab === "daily"
                 ? `Day-by-day summary of Sales, Product Costs, Purchases, Expenses & Net Profit (${effectiveDateRange.label})`
                 : "Live stock balance on hand, inward purchases, outward sales, returns, adjustments, and inventory value."}
@@ -1452,25 +1441,25 @@ export const ReportsView: React.FC = () => {
                     <th className="py-3 px-3 min-w-[170px]">Product Description</th>
                     <th className="py-3 px-2.5 w-28">Category</th>
                     <th className="py-3 px-2.5 text-right w-20">Units Sold</th>
-                    <th className="py-3 px-2.5 text-right w-24 bg-amber-50/50 text-amber-900 border-x border-amber-100">
+                    <th className="py-2.5 px-2.5 text-right w-24 bg-amber-50/50 text-amber-900 border-x border-amber-100">
                       <div>Purchase Rate</div>
-                      <span className="text-[9px] font-normal text-amber-700">خرید ریٹ</span>
+                      <span className="text-[9px] font-normal text-amber-700">Unit Cost</span>
                     </th>
-                    <th className="py-3 px-2.5 text-right w-24 bg-blue-50/40 text-blue-900 border-r border-blue-100">
+                    <th className="py-2.5 px-2.5 text-right w-24 bg-blue-50/40 text-blue-900 border-r border-blue-100">
                       <div>Sale Rate</div>
-                      <span className="text-[9px] font-normal text-blue-700">فروخت ریٹ</span>
+                      <span className="text-[9px] font-normal text-blue-700">Avg Rate</span>
                     </th>
                     <th className="py-3 px-3 text-right w-28 bg-amber-50/70 text-amber-900 border-r border-amber-100">
                       <div>Total Product Cost</div>
-                      <span className="text-[9px] font-normal text-amber-700">کتنے کی تھیں</span>
+                      <span className="text-[9px] font-normal text-amber-700">COGS</span>
                     </th>
                     <th className="py-3 px-3 text-right w-28 bg-blue-50/60 text-blue-900 border-r border-blue-100">
                       <div>Total Sale Amount</div>
-                      <span className="text-[9px] font-normal text-blue-700">کتنے میں بکیں</span>
+                      <span className="text-[9px] font-normal text-blue-700">Revenue</span>
                     </th>
                     <th className="py-3 px-3 text-right w-28 bg-emerald-50/70 text-emerald-900 border-r border-emerald-100">
                       <div>Net Profit</div>
-                      <span className="text-[9px] font-normal text-emerald-700">کتنا منافع ہوا</span>
+                      <span className="text-[9px] font-normal text-emerald-700">Earned</span>
                     </th>
                     <th className="py-3 px-2.5 text-right w-20">Margin</th>
                     <th className="py-3 px-2.5 text-center w-24">Status</th>
@@ -1512,17 +1501,17 @@ export const ReportsView: React.FC = () => {
                           Rs. {p.avgSaleRate.toLocaleString()}
                         </td>
 
-                        {/* Total Product Cost (کتنے کی پراڈکٹس تھیں) */}
+                        {/* Total Product Cost */}
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-900 bg-amber-50/40 border-r border-amber-100/60">
                           Rs. {p.totalCost.toLocaleString()}
                         </td>
 
-                        {/* Total Sale Revenue (کتنے میں فروخت ہوئیں) */}
+                        {/* Total Sale Revenue */}
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-900 bg-blue-50/30 border-r border-blue-100/60">
                           Rs. {p.totalRevenue.toLocaleString()}
                         </td>
 
-                        {/* Net Profit Earned (کتنے پیسے منافع ہوا) */}
+                        {/* Net Profit Earned */}
                         <td className="py-2.5 px-3 text-right font-mono font-bold bg-emerald-50/40 border-r border-emerald-100/60">
                           <span className={p.profit >= 0 ? "text-emerald-700" : "text-rose-600"}>
                             {p.profit >= 0 ? "+" : ""}Rs. {p.profit.toLocaleString()}

@@ -119,7 +119,7 @@ export const AdjustPurchaseRateModal: React.FC<AdjustPurchaseRateModalProps> = (
                 <span className="text-xs text-teal-200 font-medium">{product.category}</span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5">
-                Adjust Purchase Rate (خرید ریٹ)
+                Adjust Purchase Rate
               </h2>
             </div>
           </div>
@@ -172,7 +172,7 @@ export const AdjustPurchaseRateModal: React.FC<AdjustPurchaseRateModalProps> = (
             <label className="flex items-center justify-between text-xs font-bold text-slate-700">
               <span className="flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                New Purchase Rate (خرید ریٹ فی یونٹ) *
+                New Purchase Rate (Per Unit) *
               </span>
               <span className="text-[11px] font-mono text-emerald-600">PKR per unit</span>
             </label>
@@ -245,7 +245,7 @@ export const AdjustPurchaseRateModal: React.FC<AdjustPurchaseRateModalProps> = (
                 onChange={(e) => setAlsoUpdateSalePrice(e.target.checked)}
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
               />
-              <span>Also update Master Sale Rate (فروخت ریٹ)</span>
+              <span>Also update Master Sale Rate</span>
             </label>
 
             {alsoUpdateSalePrice && (

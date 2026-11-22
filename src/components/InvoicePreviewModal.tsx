@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Order, PdfTemplateId } from "../types";
 import { useApp } from "../context/AppContext";
-import { generateOrderPdf } from "../utils/pdfGenerator";
+import { generateOrderPdf, downloadPdfSafely } from "../utils/pdfGenerator";
 import { convertRupeesToWords } from "../utils/numberToWords";
 import {
   Download,
@@ -26,6 +26,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     order.pdfTemplate || settings.defaultPdfTemplate || "nafees_ak"
   );
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const currentOrderWithTemplate: Order = {
@@ -33,12 +34,19 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     pdfTemplate: activeTemplate,
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     try {
       setPdfError(null);
       setIsDownloading(true);
       const doc = generateOrderPdf(currentOrderWithTemplate, settings);
-      doc.save(`${order.orderNumber || "Invoice"}_${order.customerName || "Customer"}.pdf`);
+      const safeName = `${order.orderNumber || "Invoice"}_${order.customerName || "Customer"}.pdf`;
+      const ok = await downloadPdfSafely(doc, safeName);
+      if (ok) {
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3500);
+      } else {
+        setPdfError("Could not export PDF on this device. Please try using the Print button.");
+      }
       // Update order template/status if changed without blocking PDF download
       if (order.pdfTemplate !== activeTemplate || order.status !== "Generated") {
         saveOrder({ ...currentOrderWithTemplate, status: "Generated" });
@@ -147,6 +155,16 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Inline PDF Success Banner */}
+        {downloadSuccess && (
+          <div className="px-4 py-2 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shrink-0">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              PDF saved &amp; ready to share!
+            </span>
+          </div>
+        )}
 
         {/* Inline PDF Error Banner */}
         {pdfError && (

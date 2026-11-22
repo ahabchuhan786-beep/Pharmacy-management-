@@ -16,7 +16,6 @@ import {
   FileCheck2,
   Users,
   PlusCircle,
-  Sparkles,
   ArrowRight,
   Eye,
   Pill,
@@ -39,7 +38,6 @@ export const DashboardView: React.FC = () => {
     activeVersionId,
     settings,
     setActiveNavTab,
-    loadSampleTestOrder,
     getStockSummaries,
   } = useApp();
 
@@ -245,15 +243,6 @@ export const DashboardView: React.FC = () => {
           >
             <SlidersHorizontal className="w-4 h-4" />
             <span>Adjust Stock ({stockAdjustments.length})</span>
-          </button>
-
-          <button
-            id="btn-dash-sample-test"
-            onClick={loadSampleTestOrder}
-            className="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold text-xs sm:text-sm rounded-lg border border-slate-600 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Load 27 Items</span>
           </button>
         </div>
       </div>

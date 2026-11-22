@@ -4,6 +4,7 @@ import { Order } from "../types";
 import { InvoicePreviewModal } from "./InvoicePreviewModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import * as XLSX from "xlsx";
+import { downloadBinaryBase64Safely } from "../utils/pdfGenerator";
 import {
   Search,
   FileText,
@@ -149,7 +150,7 @@ export const OrdersHistoryView: React.FC = () => {
     setPaymentModalOrder(null);
   };
 
-  const handleExportOrdersToExcel = () => {
+  const handleExportOrdersToExcel = async () => {
     const data = filteredOrders.map((o) => {
       const paid = o.paidAmount !== undefined ? o.paidAmount : o.grandTotal;
       const pending = o.pendingAmount !== undefined ? o.pendingAmount : Math.max(0, o.grandTotal - paid);
@@ -174,7 +175,8 @@ export const OrdersHistoryView: React.FC = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Orders History");
-    XLSX.writeFile(wb, `Pharmacy_Orders_History_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await downloadBinaryBase64Safely(base64, `Pharmacy_Orders_History_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

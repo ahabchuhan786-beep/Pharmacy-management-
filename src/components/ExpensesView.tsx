@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useApp } from "../context/AppContext";
 import { Expense, ExpenseCategory } from "../types";
 import { EXPENSE_CATEGORIES } from "../data/defaultData";
+import { downloadTextFileSafely } from "../utils/pdfGenerator";
 import {
   Receipt,
   Plus,
@@ -379,7 +380,7 @@ export const ExpensesView: React.FC = () => {
   };
 
   // Export Daily / Monthly to CSV
-  const exportToCsv = (dataToExport: Expense[], filename: string) => {
+  const exportToCsv = async (dataToExport: Expense[], filename: string) => {
     const headers = [
       "Expense No",
       "Date",
@@ -404,14 +405,8 @@ export const ExpensesView: React.FC = () => {
       `"${(e.notes || "").replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvText = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    await downloadTextFileSafely(csvText, filename, "text/csv;charset=utf-8;");
   };
 
   return (
@@ -421,7 +416,7 @@ export const ExpensesView: React.FC = () => {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-xs font-semibold">
             <Receipt className="w-3.5 h-3.5" />
-            <span>Pharmacy Expenses &amp; Petty Cash (روزمرہ اخراجات)</span>
+            <span>Pharmacy Expenses &amp; Petty Cash</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Daily Expenses &amp; Monthly Reports
@@ -438,7 +433,7 @@ export const ExpensesView: React.FC = () => {
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Add Daily Expense (نیا خرچ)</span>
+            <span>+ Add Daily Expense</span>
           </button>
 
           {activeSubTab === "monthly" ? (
@@ -478,7 +473,7 @@ export const ExpensesView: React.FC = () => {
               Rs. {todayTotal.toLocaleString("en-PK")}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              آج کا کل خرچ
+              Total spent today
             </p>
           </div>
         </div>
@@ -496,7 +491,7 @@ export const ExpensesView: React.FC = () => {
               Rs. {thisWeekTotal.toLocaleString("en-PK")}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              اس ہفتے کے اخراجات
+              Last 7 days total
             </p>
           </div>
         </div>
@@ -514,7 +509,7 @@ export const ExpensesView: React.FC = () => {
               Rs. {thisMonthTotal.toLocaleString("en-PK")}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              اس ماہ کے کل اخراجات
+              Current month total
             </p>
           </div>
         </div>
@@ -532,7 +527,7 @@ export const ExpensesView: React.FC = () => {
               {expenses.length}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              کل رجسٹرڈ رسیدیں / واؤچرز
+              Registered vouchers &amp; entries
             </p>
           </div>
         </div>
@@ -543,7 +538,7 @@ export const ExpensesView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <span>Quick 1-Click Daily Expense Presets (روزانہ کے عام اخراجات)</span>
+            <span>Quick 1-Click Daily Expense Presets</span>
           </div>
           <span className="text-xs text-slate-500">
             Click any button to quickly pre-fill and save daily pharmacy cash spends:
@@ -654,7 +649,7 @@ export const ExpensesView: React.FC = () => {
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Daily Expenses Log (روزانہ اندراج)</span>
+          <span>Daily Expenses Log</span>
           <span className="ml-1.5 px-2 py-0.5 text-xs bg-slate-100 rounded-full font-semibold text-slate-600">
             {filteredExpenses.length}
           </span>
@@ -669,7 +664,7 @@ export const ExpensesView: React.FC = () => {
           }`}
         >
           <BarChart3 className="w-4 h-4" />
-          <span>Monthly Expense Report (ماہانہ رپورٹ)</span>
+          <span>Monthly Expense Report</span>
           <span className="ml-1.5 px-2 py-0.5 text-xs bg-blue-100 rounded-full font-semibold text-blue-700">
             {monthName}
           </span>
@@ -710,7 +705,7 @@ export const ExpensesView: React.FC = () => {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
-                <option value="all">All Expense Categories (سب)</option>
+                <option value="all">All Expense Categories</option>
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -726,12 +721,12 @@ export const ExpensesView: React.FC = () => {
                 onChange={(e) => setDateFilter(e.target.value as any)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
-                <option value="this-month">This Month (اس ماہ)</option>
-                <option value="today">Today Only (صرف آج)</option>
-                <option value="yesterday">Yesterday (کل)</option>
-                <option value="this-week">Past 7 Days (گزشتہ 7 دن)</option>
-                <option value="all">All Records (تمام)</option>
-                <option value="custom">Custom Date Range (اپنی تاریخ)</option>
+                <option value="this-month">This Month</option>
+                <option value="today">Today Only</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="this-week">Past 7 Days</option>
+                <option value="all">All Records</option>
+                <option value="custom">Custom Date Range</option>
               </select>
             </div>
           </div>
@@ -911,7 +906,7 @@ export const ExpensesView: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: MONTHLY EXPENSES REPORT (ماہانہ رپورٹ)                             */}
+      {/* TAB 2: MONTHLY EXPENSES REPORT                                            */}
       {/* ========================================================================= */}
       {activeSubTab === "monthly" && (
         <div className="space-y-6">
@@ -961,7 +956,7 @@ export const ExpensesView: React.FC = () => {
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print Monthly Report (پرنٹ رپورٹ)</span>
+                <span>Print Monthly Report</span>
               </button>
             </div>
           </div>
@@ -976,7 +971,7 @@ export const ExpensesView: React.FC = () => {
                 Rs. {totalMonthlySpend.toLocaleString("en-PK")}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                اس ماہ کا کل خرچ ({monthlyExpenses.length} اندراجات)
+                Total spent this month ({monthlyExpenses.length} entries)
               </p>
             </div>
 
@@ -988,7 +983,7 @@ export const ExpensesView: React.FC = () => {
                 Rs. {Math.round(dailyAverageMonthly).toLocaleString("en-PK")}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                یومیہ اوسط اخراجات
+                Average spend per day
               </p>
             </div>
 
@@ -1224,7 +1219,7 @@ export const ExpensesView: React.FC = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-blue-600" />
-                  <span>{editingExpense ? "Edit Expense Entry" : "Record Daily Expense (نیا خرچ)"}</span>
+                  <span>{editingExpense ? "Edit Expense Entry" : "Record Daily Expense"}</span>
                 </h3>
                 <p className="text-xs text-slate-500">
                   {editingExpense ? `Updating ${editingExpense.expenseNumber}` : "Enter cash/bill expense details"}
@@ -1313,11 +1308,11 @@ export const ExpensesView: React.FC = () => {
                     onChange={(e) => setFormPaymentMethod(e.target.value as any)}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
-                    <option value="Cash">Cash (کیش دراز)</option>
-                    <option value="Bank Transfer">Bank Transfer (بینک آن لائن)</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
                     <option value="EasyPaisa / JazzCash">EasyPaisa / JazzCash</option>
-                    <option value="Cheque">Cheque (چیک)</option>
-                    <option value="Other">Other (دیگر)</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
               </div>
@@ -1372,7 +1367,7 @@ export const ExpensesView: React.FC = () => {
                   type="submit"
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  {editingExpense ? "Update Expense" : "Save Expense (محفوظ کریں)"}
+                  {editingExpense ? "Update Expense" : "Save Expense"}
                 </button>
               </div>
             </form>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Product, ProductHistoryEntry } from "../types";
 import { useApp } from "../context/AppContext";
 import * as XLSX from "xlsx";
+import { downloadBinaryBase64Safely } from "../utils/pdfGenerator";
 import {
   Clock,
   X,
@@ -75,7 +76,7 @@ export const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({
 
   if (!isOpen || !product) return null;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = filteredHistory.map((h, idx) => ({
       "#": idx + 1,
       Date: h.date,
@@ -93,8 +94,9 @@ export const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Product Movement");
-    XLSX.writeFile(
-      wb,
+    const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await downloadBinaryBase64Safely(
+      base64,
       `${product.productCode || "Product"}_${product.name.replace(/[^a-zA-Z0-9]/g, "_")}_History.xlsx`
     );
   };
@@ -367,7 +369,7 @@ export const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition cursor-pointer"
           >
-            Close (بند کریں)
+            Close
           </button>
         </div>
       </div>

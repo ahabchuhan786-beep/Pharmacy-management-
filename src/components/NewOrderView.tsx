@@ -1559,7 +1559,7 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
               </div>
               <div className="text-slate-600 font-semibold text-sm">No items added to order yet.</div>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Type product name above or click "Load 27-Item Sample Test" in the header to instantly verify the complete order.
+                Type product name or code above to add items to this order.
               </p>
             </div>
           ) : (
@@ -1625,7 +1625,7 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
                           {isDuplicateItem && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                               <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
-                              Duplicate Item (ڈپلیکیٹ)
+                              Duplicate Item
                             </span>
                           )}
                         </div>

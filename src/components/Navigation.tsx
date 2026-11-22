@@ -7,7 +7,6 @@ import {
   History,
   FileText,
   Settings,
-  Sparkles,
   ShoppingBag,
   BarChart3,
   RotateCcw,
@@ -18,19 +17,12 @@ import {
   SlidersHorizontal,
   Menu,
   X,
-  Pill,
-  ChevronRight,
-  TrendingUp,
-  Smartphone,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   HandCoins,
 } from "lucide-react";
-import { PWAInstallButton } from "./PWAInstallButton";
-import { AndroidApkModal } from "./AndroidApkModal";
 import { UniversalDocumentSearchModal } from "./UniversalDocumentSearchModal";
-import { FirebaseSyncButton } from "./FirebaseSyncButton";
 
 interface NavigationProps {
   children?: React.ReactNode;
@@ -42,7 +34,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
     setActiveNavTab,
     settings,
     draftOrder,
-    loadSampleTestOrder,
     currentProducts,
     priceListVersions,
     activeVersionId,
@@ -57,7 +48,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [apkModalOpen, setApkModalOpen] = useState(false);
   const [docSearchOpen, setDocSearchOpen] = useState(false);
 
   // Global Ctrl+K / Cmd+K listener to open universal document search
@@ -94,29 +84,26 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
   const navSections = [
     {
       group: "Core Sales",
-      urdu: "فروخت اور نرخ نامہ",
       items: [
         { id: "new-order", label: "New Sale Order", icon: PlusCircle, badge: draftOrder.items.length || undefined, badgeColor: "bg-blue-600 text-white" },
-        { id: "quotations", label: "Quotations (نرخ نامہ)", icon: FileSpreadsheet, badge: quotations.length || undefined, badgeColor: "bg-indigo-600 text-white" },
+        { id: "quotations", label: "Quotations", icon: FileSpreadsheet, badge: quotations.length || undefined, badgeColor: "bg-indigo-600 text-white" },
         { id: "orders-history", label: "Sales History", icon: History },
       ],
     },
     {
       group: "Inventory & Stock",
-      urdu: "اسٹاک اور سامان",
       items: [
         { id: "price-list", label: "Price List & Catalog", icon: ClipboardList, badge: currentProducts.length, badgeColor: "bg-slate-700 text-slate-300" },
-        { id: "stock-adjustments", label: "Stock Adjustments (ایڈجسٹمنٹ)", icon: SlidersHorizontal, badge: stockAdjustments.length || undefined, badgeColor: "bg-emerald-600 text-white" },
+        { id: "stock-adjustments", label: "Stock Adjustments", icon: SlidersHorizontal, badge: stockAdjustments.length || undefined, badgeColor: "bg-emerald-600 text-white" },
         { id: "purchases", label: "Stock Purchases", icon: ShoppingBag, badge: purchases.length || undefined, badgeColor: "bg-amber-600 text-white" },
-        { id: "returns", label: "Returns (واپسی)", icon: RotateCcw, badge: returns.length || undefined, badgeColor: "bg-rose-600 text-white" },
+        { id: "returns", label: "Returns", icon: RotateCcw, badge: returns.length || undefined, badgeColor: "bg-rose-600 text-white" },
       ],
     },
     {
       group: "Directory & Finance",
-      urdu: "کسٹمرز اور اکاؤنٹس",
       items: [
         { id: "customers", label: "Customers Directory", icon: Users, badge: customers.length || undefined },
-        { id: "daily-recovery", label: "Daily Recovery (ریکوری)", icon: HandCoins, badge: recoveries.length || undefined, badgeColor: "bg-emerald-600 text-white" },
+        { id: "daily-recovery", label: "Daily Recovery", icon: HandCoins, badge: recoveries.length || undefined, badgeColor: "bg-emerald-600 text-white" },
         { id: "expenses", label: "Daily Expenses", icon: Receipt, badge: expenses.length || undefined },
         { id: "investor-profit", label: "Investor Profit Sharing", icon: Coins, badge: investors.filter((i) => i.isActive).length || undefined },
         { id: "reports", label: "Reports & Analytics", icon: BarChart3 },
@@ -124,11 +111,9 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
     },
     {
       group: "System & Config",
-      urdu: "سسٹم اور ترتیبات",
       items: [
         { id: "dashboard", label: "Dashboard Overview", icon: LayoutDashboard },
         { id: "pdf-templates", label: "PDF Templates", icon: FileText },
-        { id: "mobile-apk", label: "Android APK & Mobile App", icon: Smartphone, badgeColor: "bg-emerald-600 text-white" },
         { id: "settings", label: "System Settings", icon: Settings },
       ],
     },
@@ -144,11 +129,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
   ];
 
   const handleNavClick = (tabId: string) => {
-    if (tabId === "mobile-apk") {
-      setApkModalOpen(true);
-      setMobileMenuOpen(false);
-      return;
-    }
     setActiveNavTab(tabId);
     setMobileMenuOpen(false);
   };
@@ -159,17 +139,17 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
       case "new-order":
         return "Create Sales Order & Invoice";
       case "quotations":
-        return "Price Quotations & Estimates (نرخ نامہ / کوٹیشن)";
+        return "Price Quotations & Estimates";
       case "stock-adjustments":
-        return "Stock Adjustments & Recounts (اسٹاک میں کمی یا اضافہ)";
+        return "Stock Adjustments & Recounts";
       case "customers":
         return "Customer Directory & Profiles";
       case "daily-recovery":
-        return "Daily Recovery & Receiving Receipts (روزانہ ریکوری)";
+        return "Daily Recovery & Receiving Receipts";
       case "purchases":
         return "Stock Purchases & Supplier Bills";
       case "expenses":
-        return "Daily Expenses & Ledgers (اخراجات)";
+        return "Daily Expenses & Ledgers";
       case "investor-profit":
         return "Monthly Profit & Investor Dividends";
       case "reports":
@@ -235,7 +215,7 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             type="button"
             onClick={toggleDesktopSidebar}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0 ml-2"
-            title="Close Sidebar (سائیڈ مینو بند کریں)"
+            title="Close Sidebar"
             aria-label="Close Desktop Sidebar"
           >
             <PanelLeftClose className="w-5 h-5" />
@@ -248,7 +228,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             <div key={section.group} className="space-y-1">
               <div className="px-3 py-1 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>{section.group}</span>
-                <span className="text-[9px] font-urdu text-slate-400 font-normal">{section.urdu}</span>
               </div>
 
               {section.items.map((item) => {
@@ -287,11 +266,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             </div>
           ))}
         </nav>
-
-        {/* Install Android App / APK button */}
-        <div className="p-3 border-t border-slate-700/80 bg-slate-900/40 shrink-0">
-          <PWAInstallButton variant="sidebar" />
-        </div>
 
         {/* Sidebar Footer */}
         <div className="p-3.5 border-t border-slate-700/80 text-xs bg-slate-900/60 shrink-0 space-y-1.5">
@@ -352,29 +326,18 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             </div>
 
             {/* Quick Actions inside Drawer */}
-            <div className="p-3 bg-slate-800/40 border-b border-slate-700/60 flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  loadSampleTestOrder();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex-1 py-1.5 px-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-400/30 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>Load 27 Items</span>
-              </button>
-
-              {draftOrder.items.length > 0 && (
+            {draftOrder.items.length > 0 && (
+              <div className="p-3 bg-slate-800/40 border-b border-slate-700/60 flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => {
                     handleNavClick("new-order");
                   }}
-                  className="py-1.5 px-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold shrink-0"
+                  className="w-full py-1.5 px-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold"
                 >
-                  Draft ({draftOrder.items.length})
+                  Open Current Draft ({draftOrder.items.length})
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Nav links */}
             <nav className="flex-1 p-3 space-y-3.5 overflow-y-auto">
@@ -382,7 +345,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
                 <div key={section.group} className="space-y-1">
                   <div className="px-2 py-0.5 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     <span>{section.group}</span>
-                    <span className="text-[9px] font-urdu text-slate-400 font-normal">{section.urdu}</span>
                   </div>
 
                   {section.items.map((item) => {
@@ -421,11 +383,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
               ))}
             </nav>
 
-            {/* Install Android App / APK button in Mobile Drawer */}
-            <div className="p-3 border-t border-slate-700/80 bg-slate-900/40 shrink-0">
-              <PWAInstallButton variant="sidebar" />
-            </div>
-
             {/* Drawer Footer */}
             <div className="p-3 border-t border-slate-700/80 text-[11px] text-slate-400 bg-slate-900/60 shrink-0 flex items-center justify-between">
               <span>Salesman: <strong>{settings.defaultSalesman}</strong></span>
@@ -460,7 +417,7 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
               id="btn-toggle-desktop-sidebar"
               onClick={toggleDesktopSidebar}
               className="hidden md:flex items-center gap-1.5 p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer border border-slate-200/80 shadow-2xs"
-              title={desktopSidebarOpen ? "Close Sidebar (سائیڈ مینو بند کریں)" : "Open Sidebar (سائیڈ مینو کھولیں)"}
+              title={desktopSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
               aria-label="Toggle Desktop Sidebar"
             >
               {desktopSidebarOpen ? (
@@ -468,7 +425,7 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
               ) : (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs">
                   <PanelLeftOpen className="w-4 h-4 text-white" />
-                  <span>Open Menu (سائیڈ مینو)</span>
+                  <span>Open Menu</span>
                 </div>
               )}
             </button>
@@ -491,7 +448,7 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             </div>
           </div>
 
-          {/* Right section: Draft pill, Load 27-item test, User Avatar */}
+          {/* Right section: Search, Draft pill, User Avatar */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Universal Document Search Button */}
             <button
@@ -511,17 +468,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
             <span className="text-xs font-mono text-slate-500 hidden xl:inline-block">
               Order #{draftOrder.orderNumber}
             </span>
-
-            {/* Load 27-item sample test button */}
-            <button
-              id="btn-load-sample-test"
-              onClick={loadSampleTestOrder}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all active:scale-95 cursor-pointer shadow-xs"
-              title="Load the 27 sample items from test specification with exact quantities"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Load 27-Item Sample</span>
-            </button>
 
             {/* Quick Draft Button */}
             {draftOrder.items.length > 0 && activeNavTab !== "new-order" && (
@@ -548,12 +494,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
                 <span>Adjustments ({stockAdjustments.length})</span>
               </button>
             )}
-
-            {/* Firebase Cloud Sync Button */}
-            <FirebaseSyncButton />
-
-            {/* Install Android APK button in Top Header */}
-            <PWAInstallButton variant="compact" />
 
             {/* User status avatar */}
             <div
@@ -610,9 +550,6 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
           })}
         </nav>
       </div>
-
-      {/* Standalone Android APK & Mobile App Modal */}
-      <AndroidApkModal isOpen={apkModalOpen} onClose={() => setApkModalOpen(false)} />
 
       {/* Universal Document Search Modal (Purchase, Sale, Quotation, Return) */}
       <UniversalDocumentSearchModal

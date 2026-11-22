@@ -1,8 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 import { Quotation } from "../types";
 import { useApp } from "../context/AppContext";
+import { generateQuotationPdf, downloadPdfSafely } from "../utils/pdfGenerator";
 import {
   Printer,
+  Download,
+  CheckCircle2,
   X,
   Share2,
   Calendar,
@@ -26,12 +31,32 @@ export const QuotationPrintModal: React.FC<QuotationPrintModalProps> = ({
   onConvertToOrder,
 }) => {
   const { settings } = useApp();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleShareWhatsApp = () => {
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloading(true);
+      const doc = generateQuotationPdf(quotation, settings);
+      const safeCustomer = (quotation.customerName || "Customer").replace(/[^a-zA-Z0-9_-]+/g, "_");
+      const ok = await downloadPdfSafely(
+        doc,
+        `${quotation.quotationNumber || "Quotation"}_${safeCustomer}.pdf`
+      );
+      if (ok) {
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
     const itemsSummary = quotation.items
       .slice(0, 8)
       .map(
@@ -42,20 +67,34 @@ export const QuotationPrintModal: React.FC<QuotationPrintModalProps> = ({
 
     const moreText = quotation.items.length > 8 ? `\n...and ${quotation.items.length - 8} more items` : "";
 
-    const text = encodeURIComponent(
+    const rawText =
       `*PRICE QUOTATION - ${settings.pharmacyName || "AK Pharmacy"}*\n` +
-        `Quotation #: ${quotation.quotationNumber}\n` +
-        `Date: ${quotation.quotationDate}\n` +
-        `Valid Until: ${quotation.validUntil}\n` +
-        `Customer: ${quotation.customerName}\n` +
-        (quotation.subject ? `Subject: ${quotation.subject}\n` : "") +
-        `\n*Items:*\n${itemsSummary}${moreText}\n\n` +
-        `*Grand Total: Rs. ${quotation.grandTotal.toLocaleString()}*\n` +
-        `(${quotation.grandTotalInWords})\n\n` +
-        `*Terms:* ${quotation.termsConditions || "Prices valid for 15 days."}\n` +
-        `Contact: ${settings.phone || "0300-1234567"}`
-    );
+      `Quotation #: ${quotation.quotationNumber}\n` +
+      `Date: ${quotation.quotationDate}\n` +
+      `Valid Until: ${quotation.validUntil}\n` +
+      `Customer: ${quotation.customerName}\n` +
+      (quotation.subject ? `Subject: ${quotation.subject}\n` : "") +
+      `\n*Items:*\n${itemsSummary}${moreText}\n\n` +
+      `*Grand Total: Rs. ${quotation.grandTotal.toLocaleString()}*\n` +
+      `(${quotation.grandTotalInWords})\n\n` +
+      `*Terms:* ${quotation.termsConditions || "Prices valid for 15 days."}\n` +
+      `Contact: ${settings.phone || "0300-1234567"}`;
 
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: `Quotation ${quotation.quotationNumber}`,
+          text: rawText,
+          dialogTitle: "Share Quotation",
+        });
+        return;
+      } catch {
+        // Ignore user cancel
+        return;
+      }
+    }
+
+    const text = encodeURIComponent(rawText);
     const phoneDigits = quotation.customerPhone?.replace(/[^0-9]/g, "") || "";
     const waUrl = phoneDigits
       ? `https://wa.me/${phoneDigits.startsWith("0") ? "92" + phoneDigits.slice(1) : phoneDigits}?text=${text}`
@@ -128,6 +167,17 @@ export const QuotationPrintModal: React.FC<QuotationPrintModalProps> = ({
             >
               <Share2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-60"
+              title="Download quotation PDF"
+            >
+              {downloadSuccess ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{isDownloading ? "Generating..." : downloadSuccess ? "Saved!" : "Download PDF"}</span>
             </button>
 
             <button
@@ -252,8 +302,8 @@ export const QuotationPrintModal: React.FC<QuotationPrintModalProps> = ({
                   </span>
                   <span>
                     {quotation.quotationRateType === "purchase_rate"
-                      ? "This quotation is prepared based on Wholesale Purchase / Cost Rates (خریداری ریٹ پر مبنی نرخ نامہ)"
-                      : "This quotation is prepared based on Standard Selling / MRP Rates (سیل ریٹ پر مبنی نرخ نامہ)"}
+                      ? "This quotation is prepared based on Wholesale Purchase / Cost Rates"
+                      : "This quotation is prepared based on Standard Selling / MRP Rates"}
                   </span>
                 </div>
                 <span className="text-[11px] opacity-80 hidden sm:inline">
@@ -346,7 +396,7 @@ export const QuotationPrintModal: React.FC<QuotationPrintModalProps> = ({
               {quotation.termsConditions && (
                 <div className="my-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                   <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider block mb-1">
-                    Standard Terms & Conditions (شرائط و ضوابط):
+                    Standard Terms & Conditions:
                   </span>
                   <p className="text-slate-600 whitespace-pre-line leading-relaxed text-[11px]">
                     {quotation.termsConditions}

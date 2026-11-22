@@ -40,19 +40,6 @@ import {
 } from "../data/defaultData";
 import { convertRupeesToWords } from "../utils/numberToWords";
 import { findMatchingProducts } from "../utils/fuzzyMatch";
-import { auth } from "../firebase/config";
-import {
-  saveOrderToFirestore,
-  deleteOrderFromFirestore,
-  savePurchaseToFirestore,
-  deletePurchaseFromFirestore,
-  saveStockAdjustmentToFirestore,
-  deleteStockAdjustmentFromFirestore,
-  deleteProductFromFirestore,
-  saveProductToFirestore,
-  saveRecoveryToFirestore,
-  deleteRecoveryFromFirestore,
-} from "../firebase/firestoreService";
 
 interface AppContextType {
   settings: PharmacySettings;
@@ -112,7 +99,6 @@ interface AppContextType {
   updateDraftItem: (itemId: string, updates: Partial<OrderItem>) => { success: boolean; error?: string };
   removeDraftItem: (itemId: string) => void;
   deleteMultipleDraftItems: (itemIds: string[]) => void;
-  loadSampleTestOrder: () => void;
   
   // Purchases
   purchases: PurchaseOrder[];
@@ -757,10 +743,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: new Date().toISOString(),
     };
 
-    if (auth.currentUser?.uid) {
-      saveProductToFirestore(auth.currentUser.uid, newProduct).catch(() => {});
-    }
-
     setPriceListVersions((prev) =>
       prev.map((ver) => {
         if (ver.id === activeVersionId) {
@@ -797,9 +779,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 updatedAt: new Date().toISOString() 
               };
               if (updates.name) updated.normalizedName = updates.name.toLowerCase().trim();
-              if (auth.currentUser?.uid) {
-                saveProductToFirestore(auth.currentUser.uid, updated).catch(() => {});
-              }
               return updated;
             }
             return p;
@@ -857,11 +836,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         )
       );
     }
-
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      deleteProductFromFirestore(auth.currentUser.uid, productId).catch(() => {});
-    }
   };
 
   const deleteMultipleProducts = (productIds: string[]) => {
@@ -899,13 +873,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           !prodNames.includes(adj.productName.toLowerCase().trim())
       )
     );
-
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      productIds.forEach((id) => {
-        deleteProductFromFirestore(auth.currentUser.uid, id).catch(() => {});
-      });
-    }
   };
 
   // Order Draft Management
@@ -1179,11 +1146,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       body: JSON.stringify(zeroAdjustment),
     }).catch(() => {});
 
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      saveStockAdjustmentToFirestore(auth.currentUser.uid, zeroAdjustment).catch(() => {});
-    }
-
     return { success: true };
   };
 
@@ -1428,11 +1390,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return [newCust, ...prev];
         }
       });
-    }
-
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      saveOrderToFirestore(auth.currentUser.uid, recalculated).catch(() => {});
     }
 
     return { success: true, order: recalculated };
@@ -1797,9 +1754,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetch(`/api/orders/${orderId}`, { method: "DELETE" }).catch((err) =>
       console.warn("Backend delete order notice:", err)
     );
-    if (auth.currentUser?.uid) {
-      deleteOrderFromFirestore(auth.currentUser.uid, orderId).catch(() => {});
-    }
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
   };
 
@@ -1808,9 +1762,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetch(`/api/orders/${id}`, { method: "DELETE" }).catch((err) =>
         console.warn("Backend delete order notice:", err)
       );
-      if (auth.currentUser?.uid) {
-        deleteOrderFromFirestore(auth.currentUser.uid, id).catch(() => {});
-      }
     });
     setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)));
   };
@@ -1912,12 +1863,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return ver;
         })
       );
-
-      if (auth.currentUser?.uid) {
-        [...newProductsCreated, ...Array.from(updatedProductsMap.values())].forEach((prod) => {
-          saveProductToFirestore(auth.currentUser!.uid, prod).catch(() => {});
-        });
-      }
     }
 
     // Immediately update local React state -> All components immediately reflect new available stock without refresh!
@@ -1938,11 +1883,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       body: JSON.stringify(normalizedPurchase),
     }).catch((err) => console.warn("Backend purchase sync notice:", err));
 
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      savePurchaseToFirestore(auth.currentUser.uid, normalizedPurchase).catch(() => {});
-    }
-
     return { success: true };
   };
 
@@ -1951,9 +1891,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetch(`/api/purchases/${purchaseId}`, { method: "DELETE" }).catch((err) =>
       console.warn("Backend delete purchase notice:", err)
     );
-    if (auth.currentUser?.uid) {
-      deletePurchaseFromFirestore(auth.currentUser.uid, purchaseId).catch(() => {});
-    }
     setPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
   };
 
@@ -1962,9 +1899,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetch(`/api/purchases/${id}`, { method: "DELETE" }).catch((err) =>
         console.warn("Backend delete purchase notice:", err)
       );
-      if (auth.currentUser?.uid) {
-        deletePurchaseFromFirestore(auth.currentUser.uid, id).catch(() => {});
-      }
     });
     setPurchases((prev) => prev.filter((p) => !purchaseIds.includes(p.id)));
   };
@@ -2036,9 +1970,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         paymentStatus: newStatus,
         updatedAt: new Date().toISOString(),
       };
-      if (auth.currentUser?.uid) {
-        saveOrderToFirestore(auth.currentUser.uid, updatedOrd).catch(() => {});
-      }
       return updatedOrd;
     });
   };
@@ -2088,9 +2019,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           paymentNotes: `${ord.paymentNotes ? ord.paymentNotes + " | " : ""}Recovery ${recovery.receiptNumber}: Rs. ${applyAmt.toLocaleString("en-PK")}`,
           updatedAt: nowIso,
         };
-        if (auth.currentUser?.uid) {
-          saveOrderToFirestore(auth.currentUser.uid, updatedOrd).catch(() => {});
-        }
         return updatedOrd;
       });
     }
@@ -2122,10 +2050,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [finalRecovery, ...prev];
     });
 
-    if (auth.currentUser?.uid) {
-      saveRecoveryToFirestore(auth.currentUser.uid, finalRecovery).catch(() => {});
-    }
-
     return finalRecovery;
   };
 
@@ -2133,9 +2057,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const target = recoveries.find((r) => r.id === recoveryId);
     if (target?.appliedOrderDeductions && target.appliedOrderDeductions.length > 0) {
       setOrders((prev) => applyOrderDeductionReversal(prev, target.appliedOrderDeductions!));
-    }
-    if (auth.currentUser?.uid) {
-      deleteRecoveryFromFirestore(auth.currentUser.uid, recoveryId).catch(() => {});
     }
     setRecoveries((prev) => prev.filter((r) => r.id !== recoveryId));
   };
@@ -2153,11 +2074,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return next;
       });
     }
-    recoveryIds.forEach((id) => {
-      if (auth.currentUser?.uid) {
-        deleteRecoveryFromFirestore(auth.currentUser.uid, id).catch(() => {});
-      }
-    });
     setRecoveries((prev) => prev.filter((r) => !idSet.has(r.id)));
   };
 
@@ -2474,9 +2390,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : ver
         )
       );
-      if (auth.currentUser?.uid) {
-        saveProductToFirestore(auth.currentUser.uid, newProd).catch(() => {});
-      }
     }
 
     const finalNewStock =
@@ -2507,11 +2420,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [sanitizedAdjustment, ...prev];
     });
-
-    // Sync to Firestore
-    if (auth.currentUser?.uid) {
-      saveStockAdjustmentToFirestore(auth.currentUser.uid, sanitizedAdjustment).catch(() => {});
-    }
 
     return { success: true };
   };
@@ -2544,10 +2452,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return { ...pur, items: updatedItems };
         })
       );
-    }
-
-    if (auth.currentUser?.uid) {
-      deleteStockAdjustmentFromFirestore(auth.currentUser.uid, adjId).catch(() => {});
     }
 
     setStockAdjustments((prev) => prev.filter((a) => a.id !== adjId));
@@ -2829,94 +2733,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return [...summaries, ...extraProducts.map(buildSummaryForProduct)];
   };
 
-  // Load Sample 27-item Test Order specified in prompt
-  const loadSampleTestOrder = () => {
-    const sampleItemsRaw = [
-      { name: "Certeza strip", qty: 20 },
-      { name: "Gauze imperial", qty: 6 },
-      { name: "Gauze surgee", qty: 6 },
-      { name: "Sufra tule", qty: 5 },
-      { name: "Syringe 1cc", qty: 2 },
-      { name: "Syringe 5cc", qty: 6 },
-      { name: "Stripe 3cc", qty: 6 },
-      { name: "Syringe 10cc", qty: 4 },
-      { name: "Needle 24/26", qty: 4 },
-      { name: "B braun", qty: 2 },
-      { name: "Branula 22 Veinofix", qty: 100 },
-      { name: "Butterfly Needle 22/24", qty: 50 },
-      { name: "Drip Set SMD", qty: 200 },
-      { name: "Fixomull Life Care", qty: 4 },
-      { name: "Fixomull", qty: 2 },
-      { name: "Lancet China", qty: 4 },
-      { name: "Oncall 690 (Strip)", qty: 10 },
-      { name: "Oncall extra (Strip)", qty: 3 },
-      { name: "Medisign (Strip)", qty: 2 },
-      { name: "Thermometer Digital Certeza", qty: 10 },
-      { name: "U Check (Strip)", qty: 2 },
-      { name: "Facemask Master", qty: 50 },
-      { name: "Alcohol Swabs", qty: 4 },
-      { name: "Maxwell Cell", qty: 10 },
-      { name: "Toshiba Cell", qty: 10 },
-      { name: "Certeza Digital Weight Machine", qty: 1 },
-      { name: "Pregnancy Strip", qty: 2 },
-    ];
-
-    const generatedItems: OrderItem[] = [];
-
-    sampleItemsRaw.forEach((raw, idx) => {
-      const matches = findMatchingProducts(raw.name, currentProducts, 1);
-      const matched = matches[0]?.product;
-      const rate = matched ? matched.price : 100;
-      const productName = matched ? matched.name : raw.name;
-      const productId = matched ? matched.id : `custom-${idx}`;
-
-      generatedItems.push({
-        id: `sample-item-${idx + 1}`,
-        productId,
-        productName,
-        quantity: raw.qty,
-        rate,
-        amount: raw.qty * rate,
-        batch: "",
-        exp: "",
-        bon: 0,
-        disc1: 0,
-        disc2: 0,
-        sTax: 0,
-      });
-    });
-
-    const newDraft: Order = recalculateOrder({
-      id: "draft-" + Date.now(),
-      orderNumber: generateNextOrderNumber(orders),
-      customerName: "AL-REHMAN PHARMACY & SURGICAL",
-      customerCode: "CUST-042",
-      customerAddress: "Main High Street, Grain Market",
-      customerCity: "Sahiwal",
-      customerLicenseNo: "02-119-0982-S",
-      customerNtn: "4198234-7",
-      orderDate: new Date().toISOString().split("T")[0],
-      salesman: settings.defaultSalesman || "ADNAN",
-      summaryNo: "SUM-8941",
-      notes: "Urgent counter dispatch. Verified inventory rates.",
-      items: generatedItems,
-      subtotal: 0,
-      discount: 0,
-      tax: 0,
-      advanceTax: 0,
-      grandTotal: 0,
-      grandTotalInWords: "",
-      priceListVersion: currentActiveVersion.versionName,
-      pdfTemplate: "nafees_ak",
-      status: "Draft",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    setDraftOrder(newDraft);
-    setActiveNavTab("new-order");
-  };
-
   // Export / Import
   const exportDatabaseJson = (): string => {
     return JSON.stringify(
@@ -3020,7 +2836,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateDraftItem,
         removeDraftItem,
         deleteMultipleDraftItems,
-        loadSampleTestOrder,
         customers,
         saveCustomer,
         deleteCustomer,

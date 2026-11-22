@@ -2,7 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { RecoveryPaymentMethod, RecoveryRecord } from "../types";
 import { convertRupeesToWords } from "../utils/numberToWords";
-import { generateRecoveryReceiptPdf, downloadPdfSafely } from "../utils/pdfGenerator";
+import {
+  generateRecoveryReceiptPdf,
+  downloadPdfSafely,
+  downloadTextFileSafely,
+} from "../utils/pdfGenerator";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { RecoveryReceiptModal } from "./RecoveryReceiptModal";
 import {
@@ -484,15 +488,15 @@ export const DailyRecoveryView: React.FC = () => {
     };
   }, [recoveries, selectedDate, currentMonthPrefix, filteredRecoveries, customersWithPendingDues]);
 
-  const handleQuickDownloadPdf = (rec: RecoveryRecord) => {
+  const handleQuickDownloadPdf = async (rec: RecoveryRecord) => {
     const doc = generateRecoveryReceiptPdf(rec, settings);
     const safeName = (rec.customerName || "Customer")
       .replace(/[^a-zA-Z0-9_-]+/g, "_")
       .slice(0, 30);
-    downloadPdfSafely(doc, `${rec.receiptNumber}_${safeName}.pdf`);
+    await downloadPdfSafely(doc, `${rec.receiptNumber}_${safeName}.pdf`);
   };
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     const headers = [
       "Receipt No",
       "Date",
@@ -526,18 +530,12 @@ export const DailyRecoveryView: React.FC = () => {
       `"${(r.notes || "").replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute(
-      "download",
-      `daily_recovery_${viewScope === "day" ? selectedDate : todayStr}.csv`
+    const csvText = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+    await downloadTextFileSafely(
+      csvText,
+      `daily_recovery_${viewScope === "day" ? selectedDate : todayStr}.csv`,
+      "text/csv;charset=utf-8;"
     );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const renderMethodIcon = (method: RecoveryPaymentMethod) => {
@@ -560,7 +558,7 @@ export const DailyRecoveryView: React.FC = () => {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold">
             <HandCoins className="w-3.5 h-3.5" />
-            <span>Daily Recovery &amp; Receiving Receipts (روزانہ ریکوری اور رسید)</span>
+            <span>Daily Recovery &amp; Receiving Receipts</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Day-by-Day Recovery Ledger &amp; Receipts
@@ -577,7 +575,7 @@ export const DailyRecoveryView: React.FC = () => {
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Recovery &amp; Receipt (نئی ریکوری)</span>
+            <span>Add Recovery &amp; Receipt</span>
           </button>
 
           <button
@@ -625,7 +623,7 @@ export const DailyRecoveryView: React.FC = () => {
               {currency} {kpis.monthTotal.toLocaleString("en-PK")}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              اس ماہ کی کل وصولی ({kpis.monthCount} رسیدیں)
+              Total collected this month ({kpis.monthCount} {kpis.monthCount === 1 ? "receipt" : "receipts"})
             </p>
           </div>
         </div>
@@ -671,7 +669,7 @@ export const DailyRecoveryView: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
               <Clock className="w-4 h-4 text-amber-600" />
-              <span>Customers With Pending Balance (باقی رقم والے کسٹمرز)</span>
+              <span>Customers With Pending Balance</span>
             </div>
             <span className="text-xs text-amber-800">
               Click any party to record today&apos;s recovery &amp; print receipt
@@ -712,7 +710,7 @@ export const DailyRecoveryView: React.FC = () => {
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Day-by-Day (تاریخ وار)
+              Day-by-Day
             </button>
             <button
               type="button"
@@ -838,7 +836,7 @@ export const DailyRecoveryView: React.FC = () => {
               onChange={(e) => setMethodFilter(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
-              <option value="all">All Payment Modes (تمام طریقے)</option>
+              <option value="all">All Payment Modes</option>
               {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -1076,7 +1074,7 @@ export const DailyRecoveryView: React.FC = () => {
                       : "Record Daily Recovery & Create Receipt"}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    روزانہ ریکوری درج کریں اور وصولی کی رسید حاصل کریں
+                    Record daily customer payment recovery and generate a printable receipt
                   </p>
                 </div>
               </div>
@@ -1103,7 +1101,7 @@ export const DailyRecoveryView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Recovery Date (تاریخ وصولی) *
+                    Recovery Date *
                   </label>
                   <input
                     type="date"
@@ -1115,7 +1113,7 @@ export const DailyRecoveryView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Receipt Number (رسید نمبر)
+                    Receipt Number
                   </label>
                   <input
                     type="text"
@@ -1130,7 +1128,7 @@ export const DailyRecoveryView: React.FC = () => {
               {/* Row 2: Customer Selector with Autocomplete */}
               <div className="relative">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Customer / Pharmacy Name (کسٹمر / پارٹی کا نام) *
+                  Customer / Pharmacy Name *
                 </label>
                 <input
                   type="text"
@@ -1299,7 +1297,7 @@ export const DailyRecoveryView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Payment Method (ادائیگی کا طریقہ)
+                    Payment Method
                   </label>
                   <select
                     value={formPaymentMethod}
@@ -1331,7 +1329,7 @@ export const DailyRecoveryView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Collected By (وصول کنندہ)
+                    Collected By
                   </label>
                   <input
                     type="text"

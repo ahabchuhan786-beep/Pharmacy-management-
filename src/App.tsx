@@ -19,8 +19,6 @@ import { SettingsView } from "./components/SettingsView";
 import { OrderReviewModal } from "./components/OrderReviewModal";
 import { InvoicePreviewModal } from "./components/InvoicePreviewModal";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import { FirebaseProvider } from "./context/FirebaseContext";
-import { FirebaseSyncModal } from "./components/FirebaseSyncModal";
 import { Order } from "./types";
 
 const MainContent: React.FC = () => {
@@ -103,10 +101,7 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <FirebaseProvider>
-        <MainContent />
-        <FirebaseSyncModal />
-      </FirebaseProvider>
+      <MainContent />
     </AppProvider>
   );
 }

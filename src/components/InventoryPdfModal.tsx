@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Product, PriceListVersion, PharmacySettings, StockSummaryItem } from "../types";
 import { generateInventoryPriceListPdf, downloadPdfSafely, getPdfBlobUrl } from "../utils/pdfGenerator";
 import {
@@ -34,6 +35,7 @@ export const InventoryPdfModal: React.FC<InventoryPdfModalProps> = ({
   const [searchFilter, setSearchFilter] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const stockMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -65,26 +67,33 @@ export const InventoryPdfModal: React.FC<InventoryPdfModalProps> = ({
 
   const fileName = `${(settings.pharmacyName || "AK_Pharmacy").replace(/\s+/g, "_")}_Inventory_Catalog_${(version?.versionName || "v1").replace(/\s+/g, "_")}.pdf`;
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     try {
+      setPdfError(null);
       setIsDownloading(true);
       const doc = generateInventoryPriceListPdf(products, version, settings, stockSummaries);
-      const ok = downloadPdfSafely(doc, fileName);
+      const ok = await downloadPdfSafely(doc, fileName);
       if (ok) {
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 3500);
+      } else {
+        setPdfError("Error saving PDF. Please try using the Print button as an alternative.");
       }
     } catch (err) {
       console.error("Failed to generate/download Inventory PDF:", err);
-      alert("Error generating PDF. Please use the Print button as an alternative.");
+      setPdfError("Error generating PDF. Please use the Print button as an alternative.");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const handleOpenPdfInNewTab = () => {
+  const handleOpenPdfInNewTab = async () => {
     try {
       const doc = generateInventoryPriceListPdf(products, version, settings, stockSummaries);
+      if (Capacitor.isNativePlatform()) {
+        await downloadPdfSafely(doc, fileName);
+        return;
+      }
       const url = getPdfBlobUrl(doc);
       window.open(url, "_blank");
     } catch (err) {
@@ -133,6 +142,11 @@ export const InventoryPdfModal: React.FC<InventoryPdfModalProps> = ({
               <span className="flex items-center gap-1 text-xs text-emerald-400 font-semibold bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-500/30 animate-pulse">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Downloaded!
+              </span>
+            )}
+            {pdfError && (
+              <span className="text-xs text-rose-300 font-semibold bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-500/30">
+                {pdfError}
               </span>
             )}
 

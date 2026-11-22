@@ -194,9 +194,6 @@ export const QuotationsView: React.FC = () => {
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Price Quotations & Estimates</span>
-                <span className="text-xs px-2.5 py-0.5 font-bold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
-                  کوٹیشن سیکشن
-                </span>
               </h1>
               <p className="text-xs text-slate-500">
                 Prepare official hospital & pharmacy price quotes. Track validity, check live stock, and convert
@@ -1155,7 +1152,7 @@ const CreateOrEditQuotationModal: React.FC<CreateModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Quotation Rate Basis (کوٹیشن نرخ کی بنیاد):
+                    Quotation Rate Basis:
                   </span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
@@ -1165,8 +1162,8 @@ const CreateOrEditQuotationModal: React.FC<CreateModalProps> = ({
                     }`}
                   >
                     {quotationRateType === "sell_rate"
-                      ? "★ Sell Rate Quotation (فروخت ریٹ - Customer Price)"
-                      : "★ Purchase Rate Quotation (خریداری ریٹ - Supplier/Cost Price)"}
+                      ? "* Sell Rate Quotation (Customer Price)"
+                      : "* Purchase Rate Quotation (Supplier/Cost Price)"}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
@@ -1187,7 +1184,7 @@ const CreateOrEditQuotationModal: React.FC<CreateModalProps> = ({
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    Sell Rate (فروخت)
+                    Sell Rate
                   </button>
                   <button
                     type="button"
@@ -1198,7 +1195,7 @@ const CreateOrEditQuotationModal: React.FC<CreateModalProps> = ({
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    Purchase Rate (خریداری)
+                    Purchase Rate
                   </button>
                 </div>
 
@@ -1692,7 +1689,7 @@ const CreateOrEditQuotationModal: React.FC<CreateModalProps> = ({
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Terms & Conditions (شرائط و ضوابط)
+                  Terms & Conditions
                 </label>
                 <textarea
                   rows={4}

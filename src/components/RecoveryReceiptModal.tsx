@@ -28,13 +28,14 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
   const { settings } = useApp();
   const [layoutMode, setLayoutMode] = useState<"voucher" | "slip">("voucher");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const currency = settings.currencySymbol || "Rs.";
   const amountWords =
     recovery.amountInWords || convertRupeesToWords(Number(recovery.recoveredAmount) || 0);
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     try {
       setIsDownloading(true);
       const doc = generateRecoveryReceiptPdf(recovery, settings, layoutMode);
@@ -42,7 +43,11 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
         .replace(/[^a-zA-Z0-9_-]+/g, "_")
         .slice(0, 30);
       const suffix = layoutMode === "slip" ? "_Slip" : "";
-      downloadPdfSafely(doc, `${recovery.receiptNumber}${suffix}_${safeName}.pdf`);
+      const ok = await downloadPdfSafely(doc, `${recovery.receiptNumber}${suffix}_${safeName}.pdf`);
+      if (ok) {
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -55,7 +60,7 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
   const handleCopySummary = async () => {
     const lines = [
       `*${(settings.pharmacyName || "AK PHARMACY").toUpperCase()}*`,
-      `PAYMENT RECEIVING RECEIPT (وصولی کی رسید)`,
+      `PAYMENT RECEIVING RECEIPT`,
       `Receipt #: ${recovery.receiptNumber}`,
       `Date: ${recovery.recoveryDate}${recovery.recoveryTime ? ` (${recovery.recoveryTime})` : ""}`,
       `Customer: ${recovery.customerName}`,
@@ -122,7 +127,7 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
 
         <div className="text-right">
           <div className="inline-block px-3 py-1 bg-emerald-600 text-white font-black text-xs tracking-wider uppercase rounded">
-            Receiving Receipt (وصولی رسید)
+            Receiving Receipt
           </div>
           <div className="text-[10px] text-slate-300 font-semibold tracking-widest uppercase mt-1">
             {copyTitle}
@@ -157,7 +162,7 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
           {/* Left: Party Details */}
           <div className="sm:col-span-7 border border-slate-200 rounded-lg p-3.5 space-y-1.5 text-xs bg-white">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Received With Thanks From (وصول از)
+              Received With Thanks From
             </div>
             <div className="text-base font-black text-slate-900">
               {recovery.customerName || "Walk-In Customer"}
@@ -293,10 +298,10 @@ export const RecoveryReceiptModal: React.FC<RecoveryReceiptModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base leading-tight text-white">
-                Receiving Receipt (وصولی کی رسید)
+                Receiving Receipt
               </h3>
               <p className="text-[11px] text-slate-400">
-                {recovery.receiptNumber} &bull; {recovery.customerName}
+                {recovery.receiptNumber} &bull; {recovery.customerName}{downloadSuccess ? " • PDF Saved!" : ""}
               </p>
             </div>
           </div>

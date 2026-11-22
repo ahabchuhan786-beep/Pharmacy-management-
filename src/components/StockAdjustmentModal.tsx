@@ -25,17 +25,17 @@ interface StockAdjustmentModalProps {
   defaultType?: StockAdjustmentType;
 }
 
-const ADJUSTMENT_REASONS: Array<{ value: StockAdjustmentReason; label: string; urdu: string }> = [
-  { value: "Physical Count / Audit Reconcile", label: "Physical Count / Audit Reconcile", urdu: "اسٹاک پڑتال اور شمار کی تصحیح" },
-  { value: "Opening Stock / Initial Setup" as any, label: "Opening Stock / Initial Balance", urdu: "ابتدائی اسٹاک بیلنس" },
-  { value: "Found Stock / Unrecorded Surplus", label: "Found Stock / Unrecorded Surplus", urdu: "اضافی برآمد شدہ مال (غیر درج شدہ)" },
-  { value: "Damaged / Broken in Store", label: "Damaged / Broken in Store", urdu: "دکان یا گودام میں ٹوٹ پھوٹ / نقصان" },
-  { value: "Expired / Near Expiry Discard", label: "Expired / Near Expiry Discard", urdu: "ایکسپائر شدہ مال کو ضائع کرنا" },
-  { value: "Correction / Opening Stock", label: "Inventory Entry Correction", urdu: "اندراج کی غلطی کی درستگی" },
-  { value: "Theft / Unexplained Shortage", label: "Theft / Unexplained Shortage", urdu: "کمی یا نامعلوم گمشدگی" },
-  { value: "Sample / Marketing Issue", label: "Sample / Doctor Demo Dispensed", urdu: "سیمپل یا ڈیمو کے لیے دیا گیا" },
-  { value: "Customer Return Unbilled", label: "Customer Return (Unbilled/Manual)", urdu: "کسٹمر کی دستی واپسی" },
-  { value: "Other", label: "Other / Custom Reason", urdu: "دیگر وجوہات" },
+const ADJUSTMENT_REASONS: Array<{ value: StockAdjustmentReason; label: string }> = [
+  { value: "Physical Count / Audit Reconcile", label: "Physical Count / Audit Reconcile" },
+  { value: "Opening Stock / Initial Setup" as any, label: "Opening Stock / Initial Balance" },
+  { value: "Found Stock / Unrecorded Surplus", label: "Found Stock / Unrecorded Surplus" },
+  { value: "Damaged / Broken in Store", label: "Damaged / Broken in Store" },
+  { value: "Expired / Near Expiry Discard", label: "Expired / Near Expiry Discard" },
+  { value: "Correction / Opening Stock", label: "Inventory Entry Correction" },
+  { value: "Theft / Unexplained Shortage", label: "Theft / Unexplained Shortage" },
+  { value: "Sample / Marketing Issue", label: "Sample / Doctor Demo Dispensed" },
+  { value: "Customer Return Unbilled", label: "Customer Return (Unbilled/Manual)" },
+  { value: "Other", label: "Other / Custom Reason" },
 ];
 
 export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
@@ -245,7 +245,6 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Stock Adjustment</span>
-                <span className="text-xs font-normal text-slate-500 font-urdu">(اسٹاک میں کمی یا اضافہ)</span>
               </h3>
               <p className="text-xs text-slate-500">
                 Directly adjust physical inventory count, damage write-offs, or unrecorded surplus.
@@ -279,7 +278,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           {/* Type Toggle: Increase vs Decrease */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Adjustment Type (عمل کی قسم)
+              Adjustment Type
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -297,7 +296,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 }`}
               >
                 <PlusCircle className={`w-4 h-4 ${type === "Increase" ? "text-emerald-600" : "text-slate-400"}`} />
-                <span>+ Increase Stock (اضافہ کریں)</span>
+                <span>+ Increase Stock</span>
               </button>
 
               <button
@@ -315,7 +314,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 }`}
               >
                 <MinusCircle className={`w-4 h-4 ${type === "Decrease" ? "text-rose-600" : "text-slate-400"}`} />
-                <span>- Decrease Stock (کمی کریں)</span>
+                <span>- Decrease Stock</span>
               </button>
             </div>
           </div>
@@ -323,7 +322,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           {/* Product Selection */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Select Product (آئٹم منتخب کریں)
+              Select Product
             </label>
 
             {selectedProduct ? (
@@ -427,7 +426,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Quantity to Adjust (تعداد) <span className="text-rose-500">*</span>
+                Quantity to Adjust <span className="text-rose-500">*</span>
               </label>
               <div className="flex items-center gap-1">
                 {[1, 5, 10, 25, 50, 100].map((inc) => (
@@ -487,7 +486,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           {/* Reason Selection */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Reason for Adjustment (وجہ) <span className="text-rose-500">*</span>
+              Reason for Adjustment <span className="text-rose-500">*</span>
             </label>
             <select
               value={reason}
@@ -496,7 +495,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             >
               {ADJUSTMENT_REASONS.map((r) => (
                 <option key={r.value} value={r.value}>
-                  {r.label} — ({r.urdu})
+                  {r.label}
                 </option>
               ))}
             </select>
@@ -527,7 +526,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Adjusted By (ذمہ دار فرد)
+                Adjusted By
               </label>
               <div className="relative">
                 <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -573,7 +572,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           {/* Notes */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Adjustment Notes & Justification (تفصیل)
+              Adjustment Notes & Justification
             </label>
             <textarea
               value={notes}

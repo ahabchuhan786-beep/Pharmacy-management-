@@ -29,7 +29,11 @@ import {
   DollarSign,
 } from "lucide-react";
 import { ProductHistoryModal } from "./ProductHistoryModal";
-import { generateInventoryPriceListPdf, downloadPdfSafely } from "../utils/pdfGenerator";
+import {
+  generateInventoryPriceListPdf,
+  downloadPdfSafely,
+  downloadBinaryBase64Safely,
+} from "../utils/pdfGenerator";
 import { InventoryPdfModal } from "./InventoryPdfModal";
 import { AdjustPurchaseRateModal } from "./AdjustPurchaseRateModal";
 
@@ -266,7 +270,7 @@ export const PriceListView: React.FC = () => {
     setShowAddProductModal(false);
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = currentProducts.map((p, idx) => {
       const stock = getItemAvailableStock(p.id, p.name);
       const cost = p.costPrice !== undefined ? p.costPrice : Math.round(p.price * 0.78);
@@ -296,20 +300,21 @@ export const PriceListView: React.FC = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Price List");
     const vName = (activeVer?.versionName || "Inventory").replace(/\s+/g, "_");
-    XLSX.writeFile(wb, `${vName}_Inventory_with_Purchase_Rates.xlsx`);
+    const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await downloadBinaryBase64Safely(base64, `${vName}_Inventory_with_Purchase_Rates.xlsx`);
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     try {
       setIsGeneratingPdf(true);
       const stockSummaries = getStockSummaries();
       const doc = generateInventoryPriceListPdf(currentProducts, activeVer, settings, stockSummaries);
-      const pName = (settings?.pharmacyName || "AK_Pharmacy").replace(/\s+/g, "_");
+      const pName = (settings?.pharmacyName || "PharmaFlow").replace(/\s+/g, "_");
       const vName = (activeVer?.versionName || "Catalog").replace(/\s+/g, "_");
       const fileName = `${pName}_Inventory_Catalog_${vName}.pdf`;
-      const success = downloadPdfSafely(doc, fileName);
+      const success = await downloadPdfSafely(doc, fileName);
       if (!success) {
-        // If browser blocked download, open the preview modal
+        // If download is unavailable, open the preview modal
         setShowInventoryPdfModal(true);
       }
     } catch (err) {
@@ -493,7 +498,7 @@ export const PriceListView: React.FC = () => {
           <div className="flex items-center justify-between text-emerald-800 text-[11px] font-semibold">
             <span>Stock Cost (Purchase Value)</span>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-              خرید مالیت
+              Cost
             </span>
           </div>
           <div className="text-lg sm:text-xl font-bold font-mono text-emerald-800 mt-1">
@@ -506,7 +511,7 @@ export const PriceListView: React.FC = () => {
           <div className="flex items-center justify-between text-blue-800 text-[11px] font-semibold">
             <span>Stock Retail (Sale Value)</span>
             <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
-              فروخت مالیت
+              Retail
             </span>
           </div>
           <div className="text-lg sm:text-xl font-bold font-mono text-blue-800 mt-1">
@@ -610,13 +615,11 @@ export const PriceListView: React.FC = () => {
                 <th className="py-3.5 px-3 w-32 text-right bg-emerald-50/70 text-emerald-900 border-x border-emerald-100/80">
                   <div className="flex items-center justify-end gap-1">
                     <span>Purchase Rate</span>
-                    <span className="text-[9px] font-normal text-emerald-700 bg-emerald-100/80 px-1 py-0.2 rounded">خرید</span>
                   </div>
                 </th>
                 <th className="py-3.5 px-3 w-28 text-right bg-blue-50/40 text-blue-900 border-r border-blue-100/60">
                   <div className="flex items-center justify-end gap-1">
                     <span>Master Rate</span>
-                    <span className="text-[9px] font-normal text-blue-700 bg-blue-100/80 px-1 py-0.2 rounded">فروخت</span>
                   </div>
                 </th>
                 <th className="py-3.5 px-2.5 w-24 text-right">Margin / Profit</th>
@@ -721,7 +724,7 @@ export const PriceListView: React.FC = () => {
                               placeholder="Cost Rate"
                               title="Edit purchase rate"
                             />
-                            <span className="text-[9px] text-emerald-600 font-mono">خرید ریٹ</span>
+                            <span className="text-[9px] text-emerald-600 font-mono">Cost Rate</span>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1.5 group">
@@ -743,7 +746,7 @@ export const PriceListView: React.FC = () => {
                                 setShowAdjustPurchaseRateModal(true);
                               }}
                               className="opacity-60 group-hover:opacity-100 p-1 hover:bg-emerald-100 text-emerald-700 rounded transition-all cursor-pointer"
-                              title={`Adjust purchase rate (خرید ریٹ) for ${prod.name}`}
+                              title={`Adjust purchase rate for ${prod.name}`}
                             >
                               <DollarSign className="w-3.5 h-3.5" />
                             </button>
@@ -764,7 +767,7 @@ export const PriceListView: React.FC = () => {
                               className="w-24 px-2 py-1 border border-blue-500 rounded text-right font-mono text-xs font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
                               placeholder="Sale Rate"
                             />
-                            <span className="text-[9px] text-blue-600 font-mono">فروخت ریٹ</span>
+                            <span className="text-[9px] text-blue-600 font-mono">Sale Rate</span>
                           </div>
                         ) : (
                           `Rs. ${prod.price.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`
@@ -889,7 +892,7 @@ export const PriceListView: React.FC = () => {
                                 setShowAdjustPurchaseRateModal(true);
                               }}
                               className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
-                              title={`Adjust Purchase Rate (خرید ریٹ) for ${prod.name}`}
+                              title={`Adjust Purchase Rate for ${prod.name}`}
                             >
                               <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
                             </button>
@@ -1012,7 +1015,7 @@ export const PriceListView: React.FC = () => {
                     <label className="text-[10px] uppercase font-bold text-emerald-800">
                       Purchase Rate (PKR) *
                     </label>
-                    <span className="text-[9px] text-emerald-700 font-bold">خرید ریٹ</span>
+                    <span className="text-[9px] text-emerald-700 font-bold">Cost</span>
                   </div>
                   <input
                     type="number"
@@ -1030,7 +1033,7 @@ export const PriceListView: React.FC = () => {
                     <label className="text-[10px] uppercase font-bold text-blue-800">
                       Master Sale Rate (PKR) *
                     </label>
-                    <span className="text-[9px] text-blue-700 font-bold">فروخت ریٹ</span>
+                    <span className="text-[9px] text-blue-700 font-bold">Sale</span>
                   </div>
                   <input
                     type="number"

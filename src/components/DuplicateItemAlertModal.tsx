@@ -65,7 +65,7 @@ export const DuplicateItemAlertModal: React.FC<DuplicateItemAlertModalProps> = (
                   Duplicate Item Detected!
                 </h3>
                 <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  ڈپلیکیٹ آئٹم وارننگ
+                  Duplicate Warning
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -157,7 +157,7 @@ export const DuplicateItemAlertModal: React.FC<DuplicateItemAlertModalProps> = (
                   Increase Existing Quantity to {totalAfterMerge} units
                 </div>
                 <div className="text-[11px] text-emerald-100 font-normal">
-                  موجودہ آئٹم کی تعداد بڑھائیں (تجویز کردہ)
+                  Merge with existing line quantity
                 </div>
               </div>
             </div>
@@ -177,7 +177,7 @@ export const DuplicateItemAlertModal: React.FC<DuplicateItemAlertModalProps> = (
                 <Copy className="w-3.5 h-3.5" />
               </div>
               <div className="text-left">
-                <div className="font-bold">Add as Separate Line Item (الگ لائن بنائیں)</div>
+                <div className="font-bold">Add as Separate Line Item</div>
                 <div className="text-[11px] text-slate-500 font-normal">
                   Keep both entries separately (e.g. different batch or bonus)
                 </div>
@@ -191,7 +191,7 @@ export const DuplicateItemAlertModal: React.FC<DuplicateItemAlertModalProps> = (
             onClick={onCancel}
             className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer text-center"
           >
-            Cancel / Don't Add (منسوخ کریں)
+            Cancel / Don't Add
           </button>
         </div>
       </div>

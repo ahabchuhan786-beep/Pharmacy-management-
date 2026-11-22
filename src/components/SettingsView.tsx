@@ -2,11 +2,10 @@ import React, { useState, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { PharmacySettings } from "../types";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { downloadTextFileSafely } from "../utils/pdfGenerator";
 import {
   Building,
-  Phone,
   FileBadge,
-  User,
   Shield,
   Save,
   Download,
@@ -16,17 +15,9 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   Trash2,
-  Smartphone,
-  Cloud,
-  CloudUpload,
-  CloudDownload,
-  Database,
-  ShieldCheck,
   RotateCcw,
   Copy,
 } from "lucide-react";
-import { AndroidApkModal } from "./AndroidApkModal";
-import { useFirebase } from "../context/FirebaseContext";
 
 export const SettingsView: React.FC = () => {
   const {
@@ -46,22 +37,10 @@ export const SettingsView: React.FC = () => {
     recoveries,
     resetToDefaultCatalog,
   } = useApp();
-  const {
-    user,
-    signIn,
-    logout,
-    syncStatus,
-    setSyncModalOpen,
-    uploadAllToCloud,
-    downloadAllFromCloud,
-    isSyncing,
-    lastSyncTime,
-  } = useFirebase();
   const [form, setForm] = useState<PharmacySettings>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [backupStatus, setBackupStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [showApkModal, setShowApkModal] = useState(false);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -135,24 +114,28 @@ export const SettingsView: React.FC = () => {
   });
 
   // Full backup JSON export (all 13 app collections)
-  const handleExportBackup = () => {
+  const handleExportBackup = async () => {
     try {
       const backupData = buildFullBackupPayload();
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.href = url;
-      downloadAnchor.download = `PharmaFlow_Full_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      URL.revokeObjectURL(url);
+      const filename = `PharmaFlow_Full_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const ok = await downloadTextFileSafely(
+        JSON.stringify(backupData, null, 2),
+        filename,
+        "application/json"
+      );
 
-      setBackupStatus({
-        type: "success",
-        message: `Full backup exported (${orders.length} orders, ${purchases.length} purchases, ${customers.length} customers, ${recoveries.length} recoveries).`,
-      });
-      setTimeout(() => setBackupStatus(null), 5000);
+      if (ok) {
+        setBackupStatus({
+          type: "success",
+          message: `Full backup exported (${orders.length} orders, ${purchases.length} purchases, ${customers.length} customers, ${recoveries.length} recoveries).`,
+        });
+        setTimeout(() => setBackupStatus(null), 5000);
+      } else {
+        setBackupStatus({
+          type: "error",
+          message: "Failed to export backup file.",
+        });
+      }
     } catch {
       setBackupStatus({
         type: "error",
@@ -557,99 +540,6 @@ export const SettingsView: React.FC = () => {
         </div>
       </form>
 
-      {/* FIREBASE CLOUD DATABASE & REALTIME SYNC */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
-            <Database className="w-4 h-4 text-amber-600" />
-            <span>Firebase Cloud Firestore Database</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Connected to Cloud Database</span>
-          </div>
-        </div>
-
-        <div className="bg-amber-50/60 border border-amber-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              Cloud Storage & Sync State:
-              {user ? (
-                <span className="text-emerald-700 font-semibold text-xs">
-                  Signed in as {user.displayName || user.email}
-                </span>
-              ) : (
-                <span className="text-amber-800 font-medium text-xs">
-                  Ready to link with Google Account
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Securely persist your orders, price lists, customer ledgers, and financial records in Google Cloud Firestore.
-            </p>
-            {lastSyncTime && (
-              <div className="text-[11px] text-slate-500 mt-1">
-                Last Cloud Backup: <strong className="text-slate-800">{lastSyncTime}</strong>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {user ? (
-              <button
-                type="button"
-                onClick={() => setSyncModalOpen(true)}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Cloud className="w-4 h-4" />
-                <span>Open Cloud Sync</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={signIn}
-                className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Cloud className="w-4 h-4 text-amber-600" />
-                <span>Sign In with Google</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={uploadAllToCloud}
-            disabled={isSyncing || !user}
-            className="p-3.5 bg-slate-50 hover:bg-amber-50/70 border border-slate-200 hover:border-amber-300 rounded-xl text-left space-y-1 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
-          >
-            <div className="flex items-center gap-2 text-slate-900 group-hover:text-amber-900 font-bold text-xs">
-              <CloudUpload className="w-4 h-4 text-amber-600" />
-              <span>Backup All Data to Cloud Firestore</span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Uploads all catalog items, purchases, customer profiles, and order receipts to your secure cloud partition.
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={downloadAllFromCloud}
-            disabled={isSyncing || !user}
-            className="p-3.5 bg-slate-50 hover:bg-blue-50/70 border border-slate-200 hover:border-blue-300 rounded-xl text-left space-y-1 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
-          >
-            <div className="flex items-center gap-2 text-slate-900 group-hover:text-blue-900 font-bold text-xs">
-              <CloudDownload className="w-4 h-4 text-blue-600" />
-              <span>Restore All Data from Cloud Firestore</span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Synchronizes remote Firestore records down to this device for offline and fast local caching.
-            </p>
-          </button>
-        </div>
-      </div>
-
       {/* Backup & System Maintenance */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
@@ -750,58 +640,6 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* ANDROID MOBILE APP & APK SECTION */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Android APK &amp; Mobile App</h2>
-              <p className="text-xs text-slate-500">
-                Install as a native full-screen Android app or generate a standalone APK package
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowApkModal(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-xs cursor-pointer"
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>Open APK Options</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl text-left space-y-1">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Method 1</span>
-            <div className="font-bold text-slate-900 text-xs">Direct WebAPK Install</div>
-            <p className="text-[11px] text-slate-500">
-              Android creates and installs an official APK directly from Chrome without downloading from Play Store.
-            </p>
-          </div>
-
-          <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl text-left space-y-1">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Method 2</span>
-            <div className="font-bold text-slate-900 text-xs">PWABuilder .APK File</div>
-            <p className="text-[11px] text-slate-500">
-              Generate signed/unsigned APK &amp; AAB packages for direct APK sideloading or Google Play Console.
-            </p>
-          </div>
-
-          <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl text-left space-y-1">
-            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Offline Support</span>
-            <div className="font-bold text-slate-900 text-xs">Service Worker Caching</div>
-            <p className="text-[11px] text-slate-500">
-              All UI assets, catalog pricing, and offline storage are cached locally for resilient mobile usage.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* CONFIRM DELETE MODAL */}
       {confirmDeleteModal && (
         <ConfirmDeleteModal
@@ -814,9 +652,6 @@ export const SettingsView: React.FC = () => {
           onCancel={() => setConfirmDeleteModal(null)}
         />
       )}
-
-      {/* ANDROID APK MODAL */}
-      <AndroidApkModal isOpen={showApkModal} onClose={() => setShowApkModal(false)} />
     </div>
   );
 };

@@ -31,6 +31,7 @@ import {
 import { useApp } from "../context/AppContext";
 import { Investor, InvestorPayout, MonthlyProfitDistribution } from "../types";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { downloadTextFileSafely } from "../utils/pdfGenerator";
 
 export const InvestorProfitView: React.FC = () => {
   const {
@@ -313,7 +314,7 @@ export const InvestorProfitView: React.FC = () => {
   };
 
   // Export Distribution to CSV
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const headers = [
       "Month",
       "Investor Name",
@@ -338,15 +339,12 @@ export const InvestorProfitView: React.FC = () => {
       `"${p.reference || ""}"`,
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Profit_Distribution_${selectedMonth}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvText = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    await downloadTextFileSafely(
+      csvText,
+      `Profit_Distribution_${selectedMonth}.csv`,
+      "text/csv;charset=utf-8;"
+    );
   };
 
   // Investor Form Submissions
@@ -445,9 +443,6 @@ export const InvestorProfitView: React.FC = () => {
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <span>Monthly Profit & Investor Sharing</span>
-            <span className="text-xs px-2 py-0.5 bg-blue-600/60 text-blue-200 rounded font-normal font-sans">
-              ماہانہ منافع اور شراکت دار
-            </span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             Calculate store sales, purchase costs, operating expenses, determine net distributable profit, and disburse investor dividend shares based on capital investment ratios.
@@ -613,7 +608,7 @@ export const InvestorProfitView: React.FC = () => {
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-900 text-xs space-y-3">
               <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
                 <AlertCircle className="w-4 h-4 text-amber-600" />
-                <span>Custom Manual Figures Mode (کسٹم اندراج موڈ)</span>
+                <span>Custom Manual Figures Mode</span>
               </div>
               <p>
                 You can manually adjust total sales, purchases cost, and store operating expenses for this month to match external cash audit books.
@@ -741,7 +736,7 @@ export const InvestorProfitView: React.FC = () => {
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <PieChart className="w-4 h-4 text-blue-600" />
-                  <span>Profit & Reserve Fund Allocation (منافع کا تعین و تقسیم)</span>
+                  <span>Profit & Reserve Fund Allocation</span>
                 </h3>
                 <p className="text-xs text-slate-500">
                   Gross Profit = Sales - Purchases | Net Profit = Gross Profit - Operating Expenses
@@ -750,7 +745,7 @@ export const InvestorProfitView: React.FC = () => {
 
               {/* Retained reserve percentage selector */}
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <span>Retained Reserve (ریزرو فنڈ):</span>
+                <span>Retained Reserve:</span>
                 <select
                   value={retainedReservePercent}
                   onChange={(e) => setRetainedReservePercent(Number(e.target.value))}
@@ -1503,36 +1498,36 @@ export const InvestorProfitView: React.FC = () => {
               {/* Financial Executive Summary Ledger */}
               <div className="space-y-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">
-                  1. Operational Financial Statement (ماہانہ مالیاتی گوشوارہ)
+                  1. Operational Financial Statement
                 </h3>
                 <table className="w-full text-xs divide-y divide-slate-200 border border-slate-200">
                   <tbody className="divide-y divide-slate-200">
                     <tr className="bg-slate-50">
-                      <td className="py-2 px-3 font-semibold text-slate-800">Gross Sales Revenue (فروخت مال)</td>
+                      <td className="py-2 px-3 font-semibold text-slate-800">Gross Sales Revenue</td>
                       <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
                         Rs. {financialFigures.sales.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 text-slate-700">Less: Purchases & Cost of Goods Sold (خریداری مال)</td>
+                      <td className="py-2 px-3 text-slate-700">Less: Purchases & Cost of Goods Sold</td>
                       <td className="py-2 px-3 text-right font-mono text-purple-700">
                         - Rs. {financialFigures.purchases.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr className="bg-blue-50/50 font-bold">
-                      <td className="py-2 px-3 text-blue-900">= Gross Operating Profit (خام منافع)</td>
+                      <td className="py-2 px-3 text-blue-900">= Gross Operating Profit</td>
                       <td className="py-2 px-3 text-right font-mono text-blue-900">
                         Rs. {financialFigures.grossProfit.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 text-slate-700">Less: Store Operating Expenses (اخراجات دوکان و سٹاف)</td>
+                      <td className="py-2 px-3 text-slate-700">Less: Store Operating Expenses</td>
                       <td className="py-2 px-3 text-right font-mono text-amber-700">
                         - Rs. {financialFigures.expenses.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                     <tr className="bg-slate-100 font-bold">
-                      <td className="py-2 px-3 text-slate-900">= Net Profit Before Reserve (خالص منافع)</td>
+                      <td className="py-2 px-3 text-slate-900">= Net Profit Before Reserve</td>
                       <td className="py-2 px-3 text-right font-mono text-slate-900">
                         Rs. {financialFigures.netProfit.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
@@ -1546,7 +1541,7 @@ export const InvestorProfitView: React.FC = () => {
                       </td>
                     </tr>
                     <tr className="bg-emerald-100 text-emerald-950 font-black text-sm">
-                      <td className="py-2.5 px-3">= Net Distributable Dividend Pool (شراکت داروں میں قابل تقسیم منافع)</td>
+                      <td className="py-2.5 px-3">= Net Distributable Dividend Pool</td>
                       <td className="py-2.5 px-3 text-right font-mono">
                         Rs. {financialFigures.distributableProfit.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </td>
@@ -1558,7 +1553,7 @@ export const InvestorProfitView: React.FC = () => {
               {/* Investor Payout Distribution Ledger */}
               <div className="space-y-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">
-                  2. Partner Capital Shares & Payout Disbursal Ledger (سرمایہ کاروں میں تقسیم کی تفصیل)
+                  2. Partner Capital Shares & Payout Disbursal Ledger
                 </h3>
                 <table className="w-full text-xs divide-y divide-slate-200 border border-slate-200">
                   <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">

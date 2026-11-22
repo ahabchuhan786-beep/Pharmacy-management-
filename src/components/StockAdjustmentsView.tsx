@@ -4,6 +4,7 @@ import { StockAdjustment, StockAdjustmentType } from "../types";
 import { StockAdjustmentModal } from "./StockAdjustmentModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import * as XLSX from "xlsx";
+import { downloadBinaryBase64Safely } from "../utils/pdfGenerator";
 import {
   SlidersHorizontal,
   PlusCircle,
@@ -163,7 +164,7 @@ export const StockAdjustmentsView: React.FC = () => {
   };
 
   // Export to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const dataToExport = filteredAdjustments.map((adj, idx) => ({
       "S#": idx + 1,
       "Adj Number": adj.adjustmentNumber,
@@ -186,7 +187,8 @@ export const StockAdjustmentsView: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Adjustments");
-    XLSX.writeFile(workbook, `Stock_Adjustments_${new Date().toISOString().split("T")[0]}.xlsx`);
+    const base64 = XLSX.write(workbook, { type: "base64", bookType: "xlsx" });
+    await downloadBinaryBase64Safely(base64, `Stock_Adjustments_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   return (
@@ -198,7 +200,6 @@ export const StockAdjustmentsView: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
               Inventory Ledger
             </span>
-            <span className="text-xs text-slate-500 font-urdu">(اسٹاک ایڈجسٹمنٹ اور بیلنس)</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Stock Adjustments & Recounts
