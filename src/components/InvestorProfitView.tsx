@@ -1139,7 +1139,7 @@ export const InvestorProfitView: React.FC = () => {
                                     isOpen: true,
                                     title: "Delete Partner Profile",
                                     message: `Are you sure you want to delete investor / partner "${inv.name}"? This action cannot be reversed.`,
-                                    itemDescription: `Partner: ${inv.name} | Share: ${inv.sharePercentage}% | Capital: Rs. ${inv.capitalInvested.toLocaleString()}`,
+                                    itemDescription: `Partner: ${inv.name} | Share: ${sharePct.toFixed(1)}% | Capital: Rs. ${(Number(inv.investmentAmount) || 0).toLocaleString("en-PK")}`,
                                     confirmButtonText: "Yes, Delete Partner",
                                     onConfirm: () => {
                                       deleteInvestor(inv.id);
@@ -1258,7 +1258,7 @@ export const InvestorProfitView: React.FC = () => {
                                 isOpen: true,
                                 title: "Delete Distribution Record",
                                 message: `Are you sure you want to delete the recorded profit distribution for month ${d.month}?`,
-                                itemDescription: `Month: ${d.month} | Total Distributed: Rs. ${d.totalDistributed.toLocaleString()}`,
+                                itemDescription: `Month: ${formatMonthName(d.month)} (${d.month}) | Distributable: Rs. ${(Number(d.distributableProfit) || 0).toLocaleString("en-PK")}`,
                                 confirmButtonText: "Yes, Delete Distribution",
                                 onConfirm: () => {
                                   deleteDistribution(d.id);

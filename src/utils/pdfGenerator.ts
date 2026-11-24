@@ -419,11 +419,7 @@ function renderNafeesAkInvoiceTemplate(doc: jsPDF, order: Order, settings: Pharm
   }
 
   // Estimate totals + footer height; move cleanly to new page if insufficient room
-  const prevPending = Number(order.previousPendingAmount) || 0;
-  const paid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
-  const pending = order.pendingAmount !== undefined ? Number(order.pendingAmount) : Math.max(0, Number(order.grandTotal) - paid);
-  const hasPending = pending > 0 || prevPending > 0;
-  const estTotalsH = hasPending ? 36 : 30;
+  const estTotalsH = 36;
 
   const remarksText =
     settings.footerRemarks ||
@@ -497,24 +493,28 @@ function renderTotalsAndFooter(
   let currentY = startY + 3;
   const totalsBoxY = currentY;
 
+  const subtotal = Number(order.subtotal) || 0;
+  const discount = Number(order.discount) || 0;
+  const tax = Number(order.tax) || 0;
+  const advanceTax = Number(order.advanceTax) || 0;
+  const invoiceNetAmount = Math.max(0, subtotal - discount + tax + advanceTax);
+
   const prevPending = Number(order.previousPendingAmount) || 0;
   const paid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
   const pending = order.pendingAmount !== undefined ? Number(order.pendingAmount) : Math.max(0, Number(order.grandTotal) - paid);
-  const hasPending = pending > 0 || prevPending > 0;
 
   const wordsBoxWidth = printableWidth * 0.55;
   const financialBoxX = margin + wordsBoxWidth + 2.5;
   const financialBoxWidth = printableWidth - wordsBoxWidth - 2.5;
 
-  const wordsText = convertRupeesToWords(order.grandTotal);
+  const wordsText = convertRupeesToWords(invoiceNetAmount);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const wrappedWords = doc.splitTextToSize(wordsText, wordsBoxWidth - 6);
 
-  const totalsBoxHeight = Math.max(hasPending ? 36 : 30, 21 + wrappedWords.length * 4.2);
+  const totalsBoxHeight = Math.max(36, 21 + wrappedWords.length * 4.2);
 
-  const netPending = pending + prevPending;
-  const paymentStatus = order.paymentStatus || (netPending === 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid");
+  const paymentStatus = order.paymentStatus || (pending === 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid");
 
   // Left Box: Counts, Status & Amount in Words
   doc.setDrawColor(148, 163, 184);
@@ -541,7 +541,7 @@ function renderTotalsAndFooter(
   );
   doc.text(
     `${paymentStatus.toUpperCase()} (${order.paymentMethod || "Cash"})${
-      order.dueDate && netPending > 0 ? `  |  Due: ${order.dueDate}` : ""
+      order.dueDate && pending > 0 ? `  |  Due: ${order.dueDate}` : ""
     }`,
     margin + 25,
     totalsBoxY + 10.2,
@@ -568,34 +568,26 @@ function renderTotalsAndFooter(
   doc.rect(financialBoxX, totalsBoxY, financialBoxWidth, totalsBoxHeight, "FD");
 
   const finLines: Array<{ label: string; val: string; bold?: boolean; alert?: boolean; highlight?: boolean }> = [
-    { label: "Gross Amount:", val: `Rs. ${(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}` },
-    { label: "Discount / Tax:", val: `Rs. ${(Number(order.discount) || 0) > 0 ? `-${order.discount}` : "0.00"} / ${order.tax || 0}` },
-  ];
-
-  if (prevPending > 0) {
-    finLines.push({
-      label: "+ Prev Pending:",
-      val: `Rs. ${prevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    { label: "Gross Amount:", val: `Rs. ${subtotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}` },
+    { label: "Discount / Tax:", val: `Rs. ${discount > 0 ? `-${discount}` : "0.00"} / ${tax + advanceTax}` },
+    {
+      label: "Net Amount:",
+      val: `Rs. ${invoiceNetAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
       bold: true,
-    });
-  }
-
-  finLines.push({
-    label: "Net Amount:",
-    val: `Rs. ${(Number(order.grandTotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
-    bold: true,
-    highlight: true,
-  });
-
-  if (pending > 0) {
-    finLines.push({ label: "Paid / Received:", val: `Rs. ${paid.toLocaleString("en-PK", { minimumFractionDigits: 2 })}` });
-    finLines.push({
+      highlight: true,
+    },
+    {
+      label: "Previous Pending:",
+      val: `Rs. ${prevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+      bold: prevPending > 0,
+    },
+    {
       label: "Pending Balance:",
       val: `Rs. ${pending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
       bold: true,
-      alert: true,
-    });
-  }
+      alert: pending > 0,
+    },
+  ];
 
   const stepY = totalsBoxHeight / (finLines.length + 0.4);
   let finY = totalsBoxY + stepY * 0.7;
@@ -862,16 +854,31 @@ function renderSimpleListTemplate(doc: jsPDF, order: Order, settings: PharmacySe
     currentY = margin + 4;
   }
 
+  const simpleInvoiceNet = Math.max(
+    0,
+    (Number(order.subtotal) || 0) -
+      (Number(order.discount) || 0) +
+      (Number(order.tax) || 0) +
+      (Number(order.advanceTax) || 0)
+  );
+  const simplePrevPending = Number(order.previousPendingAmount) || 0;
+  const simplePaid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
+  const simplePending =
+    order.pendingAmount !== undefined
+      ? Number(order.pendingAmount)
+      : Math.max(0, Number(order.grandTotal) - simplePaid);
+  const simpleSummaryBoxH = 22;
+
   currentY += 4;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(148, 163, 184);
-  doc.rect(margin, currentY, printableWidth, 14, "FD");
+  doc.rect(margin, currentY, printableWidth, simpleSummaryBoxH, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(15, 40, 120);
   doc.text(
-    `Grand Total:   Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    `Gross Amount: Rs. ${(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Net Amount: Rs. ${simpleInvoiceNet.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
     pageWidth / 2,
     currentY + 5,
     { align: "center", baseline: "middle" }
@@ -880,12 +887,22 @@ function renderSimpleListTemplate(doc: jsPDF, order: Order, settings: PharmacySe
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.8);
   doc.setTextColor(51, 65, 85);
-  doc.text(convertRupeesToWords(order.grandTotal), pageWidth / 2, currentY + 10.5, {
+  doc.text(convertRupeesToWords(simpleInvoiceNet), pageWidth / 2, currentY + 11, {
     align: "center",
     baseline: "middle",
   });
 
-  currentY += 18;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.8);
+  doc.setTextColor(simplePending > 0 ? 190 : 30, simplePending > 0 ? 20 : 41, simplePending > 0 ? 20 : 59);
+  doc.text(
+    `Previous Pending: Rs. ${simplePrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Pending Balance: Rs. ${simplePending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    pageWidth / 2,
+    currentY + 17,
+    { align: "center", baseline: "middle" }
+  );
+
+  currentY += simpleSummaryBoxH + 4;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(30, 41, 59);
@@ -1123,16 +1140,31 @@ function renderProfessionalPoTemplate(doc: jsPDF, order: Order, settings: Pharma
     currentY = margin + 4;
   }
 
+  const poInvoiceNet = Math.max(
+    0,
+    (Number(order.subtotal) || 0) -
+      (Number(order.discount) || 0) +
+      (Number(order.tax) || 0) +
+      (Number(order.advanceTax) || 0)
+  );
+  const poPrevPending = Number(order.previousPendingAmount) || 0;
+  const poPaid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
+  const poPending =
+    order.pendingAmount !== undefined
+      ? Number(order.pendingAmount)
+      : Math.max(0, Number(order.grandTotal) - poPaid);
+  const poSummaryBoxH = 22;
+
   currentY += 4;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(148, 163, 184);
-  doc.rect(margin, currentY, printableWidth, 14, "FD");
+  doc.rect(margin, currentY, printableWidth, poSummaryBoxH, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(15, 40, 120);
   doc.text(
-    `TOTAL AMOUNT:   Rs. ${order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    `Gross Amount: Rs. ${(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Net Amount: Rs. ${poInvoiceNet.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
     pageWidth / 2,
     currentY + 5,
     { align: "center", baseline: "middle" }
@@ -1141,12 +1173,22 @@ function renderProfessionalPoTemplate(doc: jsPDF, order: Order, settings: Pharma
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.8);
   doc.setTextColor(51, 65, 85);
-  doc.text(convertRupeesToWords(order.grandTotal), pageWidth / 2, currentY + 10.5, {
+  doc.text(convertRupeesToWords(poInvoiceNet), pageWidth / 2, currentY + 11, {
     align: "center",
     baseline: "middle",
   });
 
-  currentY += 18;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.8);
+  doc.setTextColor(poPending > 0 ? 190 : 30, poPending > 0 ? 20 : 41, poPending > 0 ? 20 : 59);
+  doc.text(
+    `Previous Pending: Rs. ${poPrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Pending Balance: Rs. ${poPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    pageWidth / 2,
+    currentY + 17,
+    { align: "center", baseline: "middle" }
+  );
+
+  currentY += poSummaryBoxH + 4;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(30, 41, 59);
