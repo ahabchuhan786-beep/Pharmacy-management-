@@ -76,10 +76,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
       (Number(order.advanceTax) || 0)
   );
   const prevPendingAmount = Number(order.previousPendingAmount) || 0;
-  const effPendingBalance =
-    order.pendingAmount !== undefined
-      ? Number(order.pendingAmount)
-      : Math.max(0, Number(order.grandTotal) - (Number(order.paidAmount) || 0));
+  const totalBalance = invoiceNetAmount + prevPendingAmount;
 
   return (
     <div
@@ -378,7 +375,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                     <div>
                       <span className="font-bold text-slate-700 block mb-0.5">Amount in Words:</span>
                       <p className="font-serif italic font-semibold text-slate-900 bg-slate-50 p-2 rounded border border-slate-200">
-                        {convertRupeesToWords(invoiceNetAmount)}
+                        {convertRupeesToWords(totalBalance)}
                       </p>
                     </div>
                   </div>
@@ -421,11 +418,11 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                     </div>
 
                     <div className="flex justify-between text-[11px] font-bold">
-                      <span className={effPendingBalance > 0 ? "text-rose-700" : "text-slate-800"}>
-                        Pending Balance:
+                      <span className={totalBalance > 0 ? "text-blue-900" : "text-slate-800"}>
+                        Total Balance:
                       </span>
-                      <span className={`font-mono font-black ${effPendingBalance > 0 ? "text-rose-700" : "text-emerald-700"}`}>
-                        Rs. {effPendingBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                      <span className={`font-mono font-black ${totalBalance > 0 ? "text-blue-900" : "text-emerald-700"}`}>
+                        Rs. {totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -517,15 +514,15 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                     Gross Amount: Rs. {(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })} &nbsp;|&nbsp; Net Amount: Rs. {invoiceNetAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-2xl font-bold font-mono text-blue-800">
-                    Rs. {invoiceNetAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                    Rs. {totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-sm font-serif italic text-slate-600">
-                    {convertRupeesToWords(invoiceNetAmount)}
+                    {convertRupeesToWords(totalBalance)}
                   </div>
                   <div className="text-xs font-bold pt-1 text-slate-700">
                     Previous Pending: Rs. {prevPendingAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })} &nbsp;|&nbsp;{" "}
-                    <span className={effPendingBalance > 0 ? "text-rose-700" : "text-emerald-700"}>
-                      Pending Balance: Rs. {effPendingBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                    <span className="text-blue-900">
+                      Total Balance: Rs. {totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -598,15 +595,15 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                     Gross Amount: Rs. {(Number(order.subtotal) || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })} &nbsp;|&nbsp; Net Amount: Rs. {invoiceNetAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-2xl font-bold font-mono text-slate-900">
-                    Rs. {invoiceNetAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                    Rs. {totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-sm font-serif italic text-slate-700">
-                    {convertRupeesToWords(invoiceNetAmount)}
+                    {convertRupeesToWords(totalBalance)}
                   </div>
                   <div className="text-xs font-bold pt-1 text-slate-700">
                     Previous Pending: Rs. {prevPendingAmount.toLocaleString("en-PK", { minimumFractionDigits: 2 })} &nbsp;|&nbsp;{" "}
-                    <span className={effPendingBalance > 0 ? "text-rose-700" : "text-emerald-700"}>
-                      Pending Balance: Rs. {effPendingBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                    <span className="text-blue-900">
+                      Total Balance: Rs. {totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>

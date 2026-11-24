@@ -265,16 +265,22 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
           </div>
           <div className="p-3 bg-white border border-slate-200 rounded-xl text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 uppercase">
-              {(draftOrder.previousPendingAmount || 0) > 0 ? "Disc / Tax / Prev" : "Discount / Tax"}
+              {(draftOrder.previousPendingAmount || 0) > 0 ? "Net / Prev Pending" : "Discount / Tax"}
             </span>
             <div className="font-mono font-semibold text-slate-700 text-xs mt-1">
               {(draftOrder.previousPendingAmount || 0) > 0
-                ? `+Rs. ${draftOrder.previousPendingAmount}`
+                ? `Rs. ${Math.max(
+                    0,
+                    (Number(draftOrder.subtotal) || 0) -
+                      (Number(draftOrder.discount) || 0) +
+                      (Number(draftOrder.tax) || 0) +
+                      (Number(draftOrder.advanceTax) || 0)
+                  ).toLocaleString("en-PK")} + Rs. ${Number(draftOrder.previousPendingAmount).toLocaleString("en-PK")}`
                 : `Rs. ${draftOrder.discount || 0} / Rs. ${draftOrder.tax || 0}`}
             </div>
           </div>
           <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-center shadow-xs">
-            <span className="text-[10px] font-bold text-blue-600 uppercase">Net Amount</span>
+            <span className="text-[10px] font-bold text-blue-600 uppercase">Total Balance</span>
             <div className="font-mono font-bold text-blue-700 text-lg mt-0.5">
               Rs. {draftOrder.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
             </div>

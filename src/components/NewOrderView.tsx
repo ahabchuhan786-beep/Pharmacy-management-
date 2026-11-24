@@ -339,15 +339,15 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
         customerPhone: cust.phone || prev.customerPhone || "",
         customerLicenseNo: cust.licenseNo || prev.customerLicenseNo || "",
         customerNtn: cust.ntn || prev.customerNtn || "",
-        // Do not force previousPendingAmount into the order; keep 0 unless user explicitly adds it
-        previousPendingAmount: prev.previousPendingAmount || 0,
+        previousPendingAmount: pending,
+        carriedLedgerPending: pending,
       })
     );
     setShowExtendedCustomerInfo(true);
     setShowCustomerDropdown(false);
     setAutoFillNotification(
       `✓ Customer auto-filled: ${cust.name} (${cust.city || "Sahiwal"})${
-        pending > 0 ? ` — Note: Ledger has Rs. ${pending.toLocaleString("en-PK")} past dues (optional)` : ""
+        pending > 0 ? ` — Previous Pending Rs. ${pending.toLocaleString("en-PK")} added` : ""
       }`
     );
     setTimeout(() => {
@@ -420,13 +420,14 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
             customerPhone: exact.phone || prev.customerPhone || "",
             customerLicenseNo: exact.licenseNo || prev.customerLicenseNo || "",
             customerNtn: exact.ntn || prev.customerNtn || "",
-            previousPendingAmount: prev.previousPendingAmount || 0,
+            previousPendingAmount: pending,
+            carriedLedgerPending: pending,
           })
         );
         setShowExtendedCustomerInfo(true);
         setAutoFillNotification(
           `✓ Auto-filled details for ${exact.name} (${exact.city || "Sahiwal"})${
-            pending > 0 ? ` — Note: Ledger has Rs. ${pending.toLocaleString("en-PK")} past dues (optional)` : ""
+            pending > 0 ? ` — Previous Pending Rs. ${pending.toLocaleString("en-PK")} added` : ""
           }`
         );
         setTimeout(() => setAutoFillNotification(null), 4000);
@@ -981,6 +982,7 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
                         customerLicenseNo: "",
                         customerNtn: "",
                         previousPendingAmount: 0,
+                        carriedLedgerPending: 0,
                       })
                     );
                     setShowCustomerDropdown(false);
@@ -1184,86 +1186,104 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 text-xs focus:outline-none focus:border-blue-500"
                 />
               </div>
-
-              {/* Previous Pending Dues Card - Only added if user enters or clicks Add */}
-              <div className="sm:col-span-2 bg-amber-50/70 p-3 rounded-lg border border-amber-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <label className="block text-[10px] uppercase font-bold text-amber-800">
-                      Previous Pending Dues (PKR)
-                    </label>
-                    {customerHistoryPending > 0 && (
-                      <span className="text-[10px] px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full font-bold">
-                        Past Dues: Rs. {customerHistoryPending.toLocaleString("en-PK")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-amber-700 mt-0.5">
-                    {(draftOrder.previousPendingAmount || 0) > 0
-                      ? "Added to Net Amount on invoice. Click Clear if you do not wish to include it."
-                      : "Optional. Not added to invoice. Click '+ Add Past Dues' or type amount if you wish to include it."}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {customerHistoryPending > 0 && (draftOrder.previousPendingAmount || 0) === 0 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraftOrder((prev) =>
-                          recalculateOrder({
-                            ...prev,
-                            previousPendingAmount: customerHistoryPending,
-                          })
-                        )
-                      }
-                      className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Add past dues to this invoice"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Add Past Dues</span>
-                    </button>
-                  )}
-                  {(draftOrder.previousPendingAmount || 0) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraftOrder((prev) =>
-                          recalculateOrder({
-                            ...prev,
-                            previousPendingAmount: 0,
-                          })
-                        )
-                      }
-                      className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Clear past dues from this invoice"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Clear</span>
-                    </button>
-                  )}
-                  <input
-                    id="input-previous-pending-amount"
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0.00"
-                    value={draftOrder.previousPendingAmount || ""}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setDraftOrder((prev) =>
-                        recalculateOrder({
-                          ...prev,
-                          previousPendingAmount: val,
-                        })
-                      );
-                    }}
-                    className="w-28 px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-amber-950 font-mono font-bold text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
             </div>
           </div>
         )}
+
+        {/* Always-Visible Pending / Previous Pending Section */}
+        <div
+          id="sale-pending-section"
+          className="mt-4 bg-amber-50/75 p-3.5 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                htmlFor="input-previous-pending-amount"
+                className="block text-xs uppercase font-bold text-amber-900"
+              >
+                Previous Pending Amount (PKR)
+              </label>
+              {customerHistoryPending > 0 && (
+                <span className="text-[10px] px-2 py-0.5 bg-amber-200 text-amber-950 rounded-full font-bold">
+                  Customer Ledger Pending: Rs. {customerHistoryPending.toLocaleString("en-PK")}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-amber-800 mt-0.5">
+              {(draftOrder.previousPendingAmount || 0) > 0
+                ? "Included in Total Balance (Net Amount + Previous Pending). Edit or clear anytime."
+                : "Enter any pending amount here, or select a customer to auto-load their pending balance."}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {customerHistoryPending > 0 &&
+              (draftOrder.previousPendingAmount || 0) !== customerHistoryPending && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraftOrder((prev) =>
+                      recalculateOrder({
+                        ...prev,
+                        previousPendingAmount: customerHistoryPending,
+                        carriedLedgerPending: customerHistoryPending,
+                      })
+                    )
+                  }
+                  className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Load customer's pending balance"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Load Pending</span>
+                </button>
+              )}
+            {(draftOrder.previousPendingAmount || 0) > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftOrder((prev) =>
+                    recalculateOrder({
+                      ...prev,
+                      previousPendingAmount: 0,
+                      carriedLedgerPending: 0,
+                    })
+                  )
+                }
+                className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                title="Clear previous pending amount"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Clear</span>
+              </button>
+            )}
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-amber-700 pointer-events-none">
+                Rs.
+              </span>
+              <input
+                id="input-previous-pending-amount"
+                type="number"
+                min="0"
+                step="any"
+                placeholder="0.00"
+                value={draftOrder.previousPendingAmount || ""}
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value) || 0);
+                  setDraftOrder((prev) =>
+                    recalculateOrder({
+                      ...prev,
+                      previousPendingAmount: val,
+                      carriedLedgerPending:
+                        val === 0
+                          ? 0
+                          : Math.min(val, Number(prev.carriedLedgerPending) || 0),
+                    })
+                  );
+                }}
+                className="w-32 pl-8 pr-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-amber-950 font-mono font-bold text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-right"
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* QUICK ADD & ORDER ITEMS SECTION */}
@@ -2026,38 +2046,59 @@ export const NewOrderView: React.FC<NewOrderViewProps> = ({ onOpenReview }) => {
             />
           </div>
 
-          {(draftOrder.previousPendingAmount || 0) > 0 && (
-            <div className="flex justify-between items-center text-xs text-amber-800 font-semibold">
-              <span>+ Previous Pending:</span>
-              <span className="font-mono">
-                Rs. {(draftOrder.previousPendingAmount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          )}
+          <div className="flex justify-between items-center text-xs">
+            <span className="font-semibold text-slate-700">Net Amount</span>
+            <span className="font-mono font-bold text-slate-900">
+              Rs.{" "}
+              {Math.max(
+                0,
+                (Number(draftOrder.subtotal) || 0) -
+                  (Number(draftOrder.discount) || 0) +
+                  (Number(draftOrder.tax) || 0) +
+                  (Number(draftOrder.advanceTax) || 0)
+              ).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
 
-          <div className="flex justify-between items-center pt-1 border-t border-slate-100">
-            <span className="text-xs font-bold uppercase text-slate-800">Net Amount</span>
+          <div className="flex justify-between items-center text-xs text-amber-800 font-semibold">
+            <span>Previous Pending (Rs.)</span>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              placeholder="0"
+              value={draftOrder.previousPendingAmount || ""}
+              onChange={(e) => {
+                const val = Math.max(0, Number(e.target.value) || 0);
+                setDraftOrder((prev) =>
+                  recalculateOrder({
+                    ...prev,
+                    previousPendingAmount: val,
+                    carriedLedgerPending:
+                      val === 0
+                        ? 0
+                        : Math.min(val, Number(prev.carriedLedgerPending) || 0),
+                  })
+                );
+              }}
+              className="w-24 px-2 py-0.5 border border-amber-300 bg-amber-50/40 rounded text-right font-mono text-xs font-bold text-amber-900 focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          <div className="flex justify-between items-center pt-1.5 border-t border-slate-200">
+            <span className="text-xs font-bold uppercase text-slate-900">Total Balance</span>
             <span className="text-base font-black font-mono text-blue-700">
               Rs. {draftOrder.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          {(draftOrder.pendingAmount || 0) > 0 && (
-            <>
-              <div className="pt-1.5 border-t border-slate-100 flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-medium">Paid / Received:</span>
-                <span className="font-mono font-semibold text-emerald-700">
-                  Rs. {(draftOrder.paidAmount !== undefined ? draftOrder.paidAmount : draftOrder.grandTotal).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-700 font-bold">Pending Balance:</span>
-                <span className="font-mono font-bold text-rose-600 font-black">
-                  Rs. {(draftOrder.pendingAmount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </>
+          {(draftOrder.paidAmount || 0) > 0 && (draftOrder.pendingAmount || 0) > 0 && (
+            <div className="pt-1 border-t border-slate-100 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-medium">Paid / Received:</span>
+              <span className="font-mono font-semibold text-emerald-700">
+                Rs. {(draftOrder.paidAmount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
           )}
         </div>
       </section>

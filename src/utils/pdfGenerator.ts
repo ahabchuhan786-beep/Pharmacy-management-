@@ -500,6 +500,7 @@ function renderTotalsAndFooter(
   const invoiceNetAmount = Math.max(0, subtotal - discount + tax + advanceTax);
 
   const prevPending = Number(order.previousPendingAmount) || 0;
+  const totalBalance = invoiceNetAmount + prevPending;
   const paid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
   const pending = order.pendingAmount !== undefined ? Number(order.pendingAmount) : Math.max(0, Number(order.grandTotal) - paid);
 
@@ -507,7 +508,7 @@ function renderTotalsAndFooter(
   const financialBoxX = margin + wordsBoxWidth + 2.5;
   const financialBoxWidth = printableWidth - wordsBoxWidth - 2.5;
 
-  const wordsText = convertRupeesToWords(invoiceNetAmount);
+  const wordsText = convertRupeesToWords(totalBalance);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const wrappedWords = doc.splitTextToSize(wordsText, wordsBoxWidth - 6);
@@ -582,10 +583,10 @@ function renderTotalsAndFooter(
       bold: prevPending > 0,
     },
     {
-      label: "Pending Balance:",
-      val: `Rs. ${pending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+      label: "Total Balance:",
+      val: `Rs. ${totalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
       bold: true,
-      alert: pending > 0,
+      highlight: true,
     },
   ];
 
@@ -862,11 +863,7 @@ function renderSimpleListTemplate(doc: jsPDF, order: Order, settings: PharmacySe
       (Number(order.advanceTax) || 0)
   );
   const simplePrevPending = Number(order.previousPendingAmount) || 0;
-  const simplePaid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
-  const simplePending =
-    order.pendingAmount !== undefined
-      ? Number(order.pendingAmount)
-      : Math.max(0, Number(order.grandTotal) - simplePaid);
+  const simpleTotalBalance = simpleInvoiceNet + simplePrevPending;
   const simpleSummaryBoxH = 22;
 
   currentY += 4;
@@ -887,16 +884,16 @@ function renderSimpleListTemplate(doc: jsPDF, order: Order, settings: PharmacySe
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.8);
   doc.setTextColor(51, 65, 85);
-  doc.text(convertRupeesToWords(simpleInvoiceNet), pageWidth / 2, currentY + 11, {
+  doc.text(convertRupeesToWords(simpleTotalBalance), pageWidth / 2, currentY + 11, {
     align: "center",
     baseline: "middle",
   });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.8);
-  doc.setTextColor(simplePending > 0 ? 190 : 30, simplePending > 0 ? 20 : 41, simplePending > 0 ? 20 : 59);
+  doc.setTextColor(15, 40, 120);
   doc.text(
-    `Previous Pending: Rs. ${simplePrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Pending Balance: Rs. ${simplePending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    `Previous Pending: Rs. ${simplePrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Total Balance: Rs. ${simpleTotalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
     pageWidth / 2,
     currentY + 17,
     { align: "center", baseline: "middle" }
@@ -1148,11 +1145,7 @@ function renderProfessionalPoTemplate(doc: jsPDF, order: Order, settings: Pharma
       (Number(order.advanceTax) || 0)
   );
   const poPrevPending = Number(order.previousPendingAmount) || 0;
-  const poPaid = order.paidAmount !== undefined ? Number(order.paidAmount) : Number(order.grandTotal);
-  const poPending =
-    order.pendingAmount !== undefined
-      ? Number(order.pendingAmount)
-      : Math.max(0, Number(order.grandTotal) - poPaid);
+  const poTotalBalance = poInvoiceNet + poPrevPending;
   const poSummaryBoxH = 22;
 
   currentY += 4;
@@ -1173,16 +1166,16 @@ function renderProfessionalPoTemplate(doc: jsPDF, order: Order, settings: Pharma
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.8);
   doc.setTextColor(51, 65, 85);
-  doc.text(convertRupeesToWords(poInvoiceNet), pageWidth / 2, currentY + 11, {
+  doc.text(convertRupeesToWords(poTotalBalance), pageWidth / 2, currentY + 11, {
     align: "center",
     baseline: "middle",
   });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.8);
-  doc.setTextColor(poPending > 0 ? 190 : 30, poPending > 0 ? 20 : 41, poPending > 0 ? 20 : 59);
+  doc.setTextColor(15, 40, 120);
   doc.text(
-    `Previous Pending: Rs. ${poPrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Pending Balance: Rs. ${poPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
+    `Previous Pending: Rs. ${poPrevPending.toLocaleString("en-PK", { minimumFractionDigits: 2 })}   |   Total Balance: Rs. ${poTotalBalance.toLocaleString("en-PK", { minimumFractionDigits: 2 })}`,
     pageWidth / 2,
     currentY + 17,
     { align: "center", baseline: "middle" }

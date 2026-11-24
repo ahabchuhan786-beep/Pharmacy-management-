@@ -548,6 +548,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       grandTotalInWords: "Rupee Zero",
       paidAmount: 0,
       pendingAmount: 0,
+      previousPendingAmount: 0,
+      carriedLedgerPending: 0,
       paymentStatus: "Paid",
       paymentMethod: "Cash",
       dueDate: "",
@@ -612,6 +614,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       tax,
       advanceTax,
       previousPendingAmount,
+      carriedLedgerPending: Math.min(Number(order.carriedLedgerPending) || 0, previousPendingAmount),
       grandTotal,
       grandTotalInWords,
       paidAmount,
@@ -1441,7 +1444,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .filter((o) => o.customerName && o.customerName.trim().toLowerCase() === target && o.id !== excludeOrderId)
       .reduce((sum, o) => {
         const p = o.pendingAmount !== undefined ? Number(o.pendingAmount) : Math.max(0, Number(o.grandTotal) - (Number(o.paidAmount) || 0));
-        return sum + p;
+        const carried = Math.min(Number(o.carriedLedgerPending) || 0, Number(o.previousPendingAmount) || 0);
+        return sum + (p - carried);
       }, 0);
     // Deduct unapplied recovery credits so linked-order settlements are never double-counted
     const unappliedRecoveryCredit = recoveries
@@ -1474,6 +1478,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const startNewOrderWithCustomer = (customer: Customer) => {
+    const pending = getCustomerPendingDues(customer.name, draftOrder.id);
     setDraftOrder((prev) =>
       recalculateOrder({
         ...prev,
@@ -1484,7 +1489,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customerPhone: customer.phone || prev.customerPhone || "",
         customerLicenseNo: customer.licenseNo || prev.customerLicenseNo || "",
         customerNtn: customer.ntn || prev.customerNtn || "",
-        previousPendingAmount: 0,
+        previousPendingAmount: pending,
+        carriedLedgerPending: pending,
       })
     );
     setActiveNavTab("new-order");
@@ -1607,15 +1613,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    const targetCustName =
+      mode === "append" && draftOrder.customerName.trim()
+        ? draftOrder.customerName
+        : source.customerName;
+    const autoPending =
+      mode === "append"
+        ? draftOrder.previousPendingAmount || 0
+        : getCustomerPendingDues(targetCustName, freshDraftId);
+    const autoCarried =
+      mode === "append"
+        ? draftOrder.carriedLedgerPending || 0
+        : autoPending;
+
     const nextDraft = recalculateOrder({
       ...(mode === "append" ? draftOrder : source),
       id: freshDraftId,
       orderNumber: freshOrderNumber,
       orderDate: mode === "append" ? draftOrder.orderDate || today : today,
-      customerName:
-        mode === "append" && draftOrder.customerName.trim()
-          ? draftOrder.customerName
-          : source.customerName,
+      customerName: targetCustName,
       customerCode:
         mode === "append" && draftOrder.customerName.trim()
           ? draftOrder.customerCode
@@ -1644,7 +1660,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mode === "append" && draftOrder.salesman
           ? draftOrder.salesman
           : source.salesman || settings.defaultSalesman || "ADNAN",
-      previousPendingAmount: mode === "append" ? draftOrder.previousPendingAmount || 0 : 0,
+      previousPendingAmount: autoPending,
+      carriedLedgerPending: autoCarried,
       paidAmount: 0,
       pendingAmount: 0,
       paymentStatus: "Paid",

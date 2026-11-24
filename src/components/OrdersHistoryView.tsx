@@ -477,16 +477,24 @@ export const OrdersHistoryView: React.FC = () => {
                   {/* Financial & Pending Breakdown */}
                   <div className="space-y-1 pt-1 border-t border-slate-100 text-xs">
                     {(order.previousPendingAmount || 0) > 0 && (
-                      <div className="flex items-center justify-between text-[11px] text-amber-800 font-semibold">
-                        <span>+ Prev Pending:</span>
-                        <span className="font-mono">
-                          Rs. {(order.previousPendingAmount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                      <>
+                        <div className="flex items-center justify-between text-[11px] text-slate-600">
+                          <span>Net Amount:</span>
+                          <span className="font-mono font-semibold">
+                            Rs. {Math.max(0, Number(order.grandTotal) - (Number(order.previousPendingAmount) || 0)).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-amber-800 font-semibold">
+                          <span>+ Prev Pending:</span>
+                          <span className="font-mono">
+                            Rs. {(order.previousPendingAmount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </>
                     )}
 
                     <div className="flex items-baseline justify-between">
-                      <span className="font-semibold text-slate-500 uppercase text-[10px]">Net Total</span>
+                      <span className="font-semibold text-slate-500 uppercase text-[10px]">Total Balance</span>
                       <span className="font-mono font-bold text-slate-900 text-base">
                         Rs. {order.grandTotal.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
                       </span>

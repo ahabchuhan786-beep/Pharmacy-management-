@@ -80,6 +80,7 @@ export interface Order {
   paidAmount?: number;
   pendingAmount?: number;
   previousPendingAmount?: number;
+  carriedLedgerPending?: number;
   totalPayable?: number;
   paymentStatus?: "Paid" | "Partial" | "Unpaid";
   paymentMethod?: "Cash" | "Bank Transfer" | "Cheque" | "Credit / Pay Later" | "Online / Card";
